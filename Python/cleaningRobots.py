@@ -62,7 +62,8 @@ class Robot(Agent):
                break
        
     def investigate_width(self):
-        x, y = self.pos
+        while self.can_move((self.pos[0]+1, self.pos[1])):
+            self.model.grid.move_agent(self, (self.pos[0]+1, self.pos[1]))
 
 class GameBoard(Model):
     def __init__(self, width, height, gameboard, robots_count):
