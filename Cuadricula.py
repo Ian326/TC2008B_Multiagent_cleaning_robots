@@ -20,8 +20,8 @@ def parse_symbol(symbol):
 
 matrix = [[parse_symbol(symbol) for symbol in row] for row in matrix]
 
-# Crear una figura y ejes de Matplotlib
-fig, ax = plt.subplots()
+# Crear una figura y ejes de Matplotlib con un tamaño adecuado para grandes matrices
+fig, ax = plt.subplots(figsize=(cols/2, rows/2))
 
 # Define un mapa de colores personalizado
 colors = [(0.53, 0.81, 0.92)]  # color para el valor 0 (blanco)
@@ -49,13 +49,18 @@ for row in range(len(matrix)):
 def animate(i):
     ax.clear()
     ax.imshow(color_matrix, cmap=cmap, vmin=0, vmax=9)
+    
+    # Ajustar el tamaño de fuente para matrices grandes
+    fontsize = max(1, int(12 * 20 / max(rows, cols)))
+    
     for row in range(len(matrix)):
         for col in range(len(matrix[row])):
             if isinstance(matrix[row][col], int):
                 color = 'white' if matrix[row][col] in range(4, 10) else 'black'
-                ax.text(col, row, str(matrix[row][col]), ha='center', va='center', color=color)
+                ax.text(col, row, str(matrix[row][col]), ha='center', va='center', color=color, fontsize=fontsize)
             else:
-                ax.text(col, row, matrix[row][col], ha='center', va='center', color='white')
+                ax.text(col, row, matrix[row][col], ha='center', va='center', color='white', fontsize=fontsize)
+    
     ax.set_xticks(np.arange(len(matrix[0])))
     ax.set_yticks(np.arange(len(matrix)))
     ax.set_xticklabels([])
@@ -71,6 +76,7 @@ anim = animation.FuncAnimation(fig, animate, frames=100, repeat=True)
 anim.save(filename="Mapa.mp4")
 
 plt.close()  # cerrar la figura al finalizar
+
 
 
 
