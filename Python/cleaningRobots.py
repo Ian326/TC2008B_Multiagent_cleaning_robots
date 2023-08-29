@@ -1,15 +1,29 @@
+# Importamos las clases que se requieren para manejar los agentes (Agent) y su entorno (Model).
+# Cada modelo puede contener múltiples agentes.
 from mesa import Agent, Model
+
+# Debido a que necesitamos que existan varios agents por celda, elegimos ''MultiGrid''
+# En la primera iteración.
 from mesa.space import MultiGrid
+
+# Con ''SimultaneousActivation, hacemos que todos los agentes se activen ''al mismo tiempo''.
 from mesa.time import RandomActivation
+
+# Haremos uso de ''DataCollector'' para obtener información de cada paso de la simulación.
 from mesa.datacollection import DataCollector
+
+# matplotlib lo usaremos crear una animación de cada uno de los pasos del modelo.
+
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import numpy as np
-import random as rd
 
 plt.rcParams["animation.html"] = "jshtml"
 matplotlib.rcParams['animation.embed_limit'] = 2**128
+
+# Importamos los siguientes paquetes para el mejor manejo de valores numéricos.
+import numpy as np
+import random as rd
 
 # --- Definición de Agentes ---
 
