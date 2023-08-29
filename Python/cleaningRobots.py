@@ -89,42 +89,40 @@ class Robot(Agent):
     
     def investigate_width(self):
         
-        next_pos = (self.position[0], self.position[1]+1)
-        #diag_up
+        next_pos = (self.position[0], self.position[1] + 1)
+        diag_up = (self.position[0] - 1, self.position[1] +1)
+        diag_down = (self.position[0] + 1, self.position[1] + 1)
         
         if self.can_move(next_pos):
-            
             self.model.grid.move_agent(self, next_pos)
-            next_pos = (self.position[0], self.position[1]+1)
-        
-        #Si no se puede mover a la otra posición, rodea el obstáculo (en diagonal))
-        if not self.can_move(next_pos):
-            
-            up_pos = (self.position[0], self.position[1] - 1)
-            
+        elif self.can_move(diag_up):
+            self.model.grid.move_agent(self, diag_up)
+        elif self.can_move(diag_down):
+            self.model.grid.move_agent(self, diag_down)
+        else:
+            # Buscar el camino más corto
+            up_pos = (self.position[0] - 1, self.position[1])
             if self.can_move(up_pos):
-                
                 self.model.grid.move_agent(self, up_pos)
     
     
     def investigate_height(self):
         
-        next_pos = (self.position[0], self.position[1] - 1)
-        
-        while self.can_move(next_pos):
-            
+        next_pos = (self.position[0] + 1, self.position[1])
+        diag_left = (self.position[0] + 1, self.position[1] - 1)
+        diag_right = (self.position[0] + 1, self.position[1] + 1)
+
+        if self.can_move(next_pos):
             self.model.grid.move_agent(self, next_pos)
-            next_pos = (self.position[0], self.position[1] - 1)
-        
-        #Si hay un obstáculo, trata moverse a la derecha
-        if not self.can_move(next_pos):
-            
+        elif self.can_move(diag_left):
+            self.model.grid.move_agent(self, diag_left)
+        elif self.can_move(diag_right):
+            self.model.grid.move_agent(self, diag_right)
+        else:
+            # Buscar el camino más corto
             right_pos = (self.position[0] + 1, self.position[1])
-            
             if self.can_move(right_pos):
-                
                 self.model.grid.move_agent(self, right_pos)
-    
     
     def can_move(self, pos):
         
