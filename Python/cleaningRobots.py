@@ -17,6 +17,7 @@ from mesa.datacollection import DataCollector
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+
 plt.rcParams["animation.html"] = "jshtml"
 matplotlib.rcParams['animation.embed_limit'] = 2**128
 
@@ -24,6 +25,7 @@ matplotlib.rcParams['animation.embed_limit'] = 2**128
 import numpy as np
 import random as rd
 
+# --- Definición de Agentes ---
 class Litter(Agent):
     def __init__(self, id, model):
         super().__init__(id, model)
@@ -38,7 +40,7 @@ class PaperBin(Agent):
     def __init__(self, id, model):
         super().__init__(id, model)
         self.type = 4
-    
+
 class Robot(Agent):
     
     def __init__(self, id, model, robot_type):
@@ -149,15 +151,17 @@ class GameBoard(Model):
         
         self.robot_roles = {"marco":1, "polo":1, "mo": 3}
 
+        self.robot_roles = {"marco":1, "polo":1, "mo": 3}
+
         for x in range(len(gameboard)):
             for y in range(len(gameboard[x])):
-                
+
                 cell = gameboard[x][y]
-                
+
                 if cell.isnumeric():
                     
                     litter_count = int(cell)
-                    
+
                     while(litter_count > 0):
                         
                         agent = Litter(self.next_id(), self)
@@ -168,17 +172,17 @@ class GameBoard(Model):
                         litter_count -= 1
 
                 elif cell == "X":
-                    
+
                     agent = Wall(self.next_id(), self)
                     self.grid.place_agent(agent, (x, y))
                     self.schedule.add(agent)
-                        
+
                 elif cell == "P":
-                    
+
                     agent = PaperBin(self.next_id(), self)
                     self.grid.place_agent(agent, (x, y))
                     self.schedule.add(agent)
-                        
+
                 elif cell == "S":
                     
                     while(robots_count):
@@ -200,72 +204,85 @@ class GameBoard(Model):
                         
                         robots_count -= 1
 
-        #Last line of __init__
-        self.datacollector = DataCollector(model_reporters={"Grid" : get_grid})
-
+        self.datacollector = DataCollector(
+            model_reporters={
+                "GridRepr": lambda m: get_grid(m)[0],
+                "GridColors": lambda m: get_grid(m)[1]
+            })
 
     def step(self):
-
         self.datacollector.collect(self)
         self.schedule.step()
-    
-    
+        
     def createRobot(self, role, x, y):
         
         agent = Robot(self.next_id(), self, role)
         
         self.grid.place_agent(agent, (x, y))
         self.schedule.add(agent)
-    
-
-
+        
 def get_grid(model):
-
-  grid = np.zeros((model.grid.width, model.grid.height))
-  
-  for (content, (x, y)) in model.grid.coord_iter():
-    
-    if content:
-        cell_type = 0
+    grid_repr = np.zeros((model.grid.width, model.grid.height), dtype=object)
+    grid_colors = np.zeros((model.grid.width, model.grid.height))
+    for (content, (x, y)) in model.grid.coord_iter():
         for agent in content:
-            cell_type = agent.type
-        grid[x][y] = cell_type
+            if isinstance(agent, Litter):
+                grid_repr[x][y] = str(int(grid_repr[x][y]) + 1) if grid_repr[x][y] else "1"
+                grid_colors[x][y] = 2
+            elif isinstance(agent, Wall):
+                grid_repr[x][y] = "X"
+                grid_colors[x][y] = 3
+            elif isinstance(agent, PaperBin):
+                grid_repr[x][y] = "P"
+                grid_colors[x][y] = 4
+            elif isinstance(agent, Robot):
+                grid_repr[x][y] = "S"
+                grid_colors[x][y] = 1
+            else:
+                grid_repr[x][y] = "0"
+                grid_colors[x][y] = 0
+    return grid_repr, grid_colors
 
-  return grid
 
-#================================Global Params=====================
-
+# --- Ejecución y visualización ---
 ROBOTS = 5
+MAX_GENERATIONS = 100
 
-MAX_GENERATIONS = 1
-
-gameboard = open('./inputs/input1.txt').read()
-gameboard = [item.split() for item in gameboard.split('\n')[:-1]]
-gameboard.pop(0)
-
+gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
-
 model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
 
 for i in range(MAX_GENERATIONS):
 
   model.step()
-  
-all_grid = model.datacollector.get_model_vars_dataframe()
 
-fig, axis = plt.subplots(figsize=(7,7))
+all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
+all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
 
+fig, axis = plt.subplots(figsize=(7, 7))
 axis.set_xticks([])
 axis.set_yticks([])
-
-patch = plt.imshow(all_grid.iloc[0][0], cmap=plt.cm.nipy_spectral)
+patch = plt.imshow(all_grid_colors.iloc[0], cmap=plt.cm.nipy_spectral)
 
 def animate(i):
+    axis.clear()
+    grid_data_repr = all_grid_repr.iloc[i]
+    grid_data_colors = all_grid_colors.iloc[i]
+    axis.imshow(grid_data_colors, cmap=plt.cm.nipy_spectral)
+    for x in range(GRID_SIZE_X):
+        for y in range(GRID_SIZE_Y):
+            num = grid_data_repr[x][y]
+            if num != "0":
+                color = 'black' if str(num).isdigit() else 'white'
+                axis.annotate(num, xy=(y, x), ha='center', va='center', color=color)
 
-  patch.set_data(all_grid.iloc[i][0])
+    axis.set_xlim(-0.5, GRID_SIZE_Y - 0.5)  # Ajuste de límites del eje X
+    axis.set_ylim(-0.5, GRID_SIZE_X - 0.5)  # Ajuste de límites del eje Y
+    axis.invert_yaxis()
+    # axis.axis('off')  # Comentado temporalmente para ver los bordes
 
-anim = animation.FuncAnimation(fig, animate, frames = MAX_GENERATIONS)
 
-anim
+
+anim = animation.FuncAnimation(fig, animate, frames=100, repeat=False)
 anim.save(filename="cleaningRobots.mp4")
