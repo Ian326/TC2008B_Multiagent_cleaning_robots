@@ -54,6 +54,9 @@ class Robot(Agent):
         self.model_width = 0
         self.model_height = 0
         
+        self.find_width = False
+        self.find_height = False
+        
         self.capacity = 5
         self.load = 0
     
@@ -61,18 +64,14 @@ class Robot(Agent):
     def step(self):
         
         if self.role == "marco":
-            if not self.model_width:
+            if not self.find_width:
                 self.investigate_width()
-            
-            else:
-                self.random_move()
+    
         
         if self.role == "polo":
-            if not self.model_height:
+            if not self.find_height:
                 self.investigate_height()
-            
-            else:
-                self.random_move()
+
     
     
     def move(self):
@@ -91,9 +90,13 @@ class Robot(Agent):
     
     def investigate_width(self):
         
-        next_pos = (self.position[0], self.position[1] + 1)
-        diag_up = (self.position[0] - 1, self.position[1] +1)
-        diag_down = (self.position[0] + 1, self.position[1] + 1)
+        next_pos = (self.pos[0], self.pos[1] + 1)
+        diag_up = (self.pos[0] - 1, self.pos[1] +1)
+        diag_down = (self.pos[0] + 1, self.pos[1] + 1)
+        
+        cells = self.model.grid.get_neighborhood(self.pos,
+                                        moore = True,
+                                        include_center = False)
         
         if self.can_move(next_pos):
             self.model.grid.move_agent(self, next_pos)
@@ -101,28 +104,36 @@ class Robot(Agent):
             self.model.grid.move_agent(self, diag_up)
         elif self.can_move(diag_down):
             self.model.grid.move_agent(self, diag_down)
+        elif len(cells) < 8:
+            self.find_width = True
         else:
             # Buscar el camino más corto
-            up_pos = (self.position[0] - 1, self.position[1])
+            up_pos = (self.pos[0] - 1, self.pos[1])
             if self.can_move(up_pos):
                 self.model.grid.move_agent(self, up_pos)
     
     
     def investigate_height(self):
         
-        next_pos = (self.position[0] + 1, self.position[1])
-        diag_left = (self.position[0] + 1, self.position[1] - 1)
-        diag_right = (self.position[0] + 1, self.position[1] + 1)
+        next_pos = (self.pos[0] + 1, self.pos[1])
+        diag_left = (self.pos[0] + 1, self.pos[1] - 1)
+        diag_right = (self.pos[0] + 1, self.pos[1] + 1)
 
+        cells = self.model.grid.get_neighborhood(self.pos,
+                                        moore = True,
+                                        include_center = False)
+            
         if self.can_move(next_pos):
             self.model.grid.move_agent(self, next_pos)
         elif self.can_move(diag_left):
             self.model.grid.move_agent(self, diag_left)
         elif self.can_move(diag_right):
             self.model.grid.move_agent(self, diag_right)
+        elif len(cells) < 8:
+            self.find_height = True
         else:
             # Buscar el camino más corto
-            right_pos = (self.position[0] + 1, self.position[1])
+            right_pos = (self.pos[0] + 1, self.pos[1])
             if self.can_move(right_pos):
                 self.model.grid.move_agent(self, right_pos)
     
@@ -246,7 +257,8 @@ def get_grid(model):
 
 # --- Ejecución y visualización ---
 ROBOTS = 5
-MAX_GENERATIONS = 100
+MAX_GENERATIONS = 60
+step_count = 0
 
 gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
@@ -255,6 +267,7 @@ model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
 
 for i in range(MAX_GENERATIONS):
 
+  step_count += 1
   model.step()
 
 all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
