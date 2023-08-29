@@ -40,6 +40,7 @@ class PaperBin(Agent):
         self.type = 4
     
 class Robot(Agent):
+    
     def __init__(self, id, model, robot_type):
         super().__init__(id, model)
         
@@ -53,54 +54,72 @@ class Robot(Agent):
         
         self.capacity = 5
         self.load = 0 
-        
+    
+    
     def step(self):
+        
         if self.role == "marco":
             if not self.model_width:
                 self.investigate_width()
             
             else:
                 self.random_move()
+        
         if self.role == "polo":
             if not self.model_height:
                 self.investigate_height()
     
+    
     def move(self):
-       possible_moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-       rd.shuffle(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
-       
-       for px, py in possible_moves:
-           next_pos = (self.pos[0] + px, self.pos[1] + py)
-           if self.can_move(next_pos):
-               self.model.grid.move_agent(self, next_pos)
-               break
-       
+        
+        possible_moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+        rd.shuffle(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
+        
+        for px, py in possible_moves:
+            
+            next_pos = (self.pos[0] + px, self.pos[1] + py)
+            
+            if self.can_move(next_pos):
+                self.model.grid.move_agent(self, next_pos)
+                break
+    
+    
     def investigate_width(self):
+        
         next_pos = (self.pos[0]+1, self.pos[1])
+        
         while self.can_move(next_pos):
+            
             self.model.grid.move_agent(self, next_pos)
             next_pos = (self.pos[0] + 1, self.pos[1])
         
         if not self.can_move(next_pos):
+            
             update_pos = (self.pos[0], self.pos[1] -1)
+            
             if self.can_move(update_pos):
+                
                 self.model.grid.move_agent(self, update_pos)
     
+    
     def investigate_height(self):
+        
         while self.can_move((self.pos)):
             self.type = 1
     
+    
     def can_move(self, pos):
+        
         self.type = 1
 
 class GameBoard(Model):
+    
     def __init__(self, width, height, gameboard, robots_count):
-        
-        self.attribute2 = "hola"
-        
+         
         self.grid = MultiGrid(width, height, torus = False)
         self.schedule = RandomActivation(self)
         self.current_id = 0
+        
         self.robot_roles = {"marco":1, "polo":1, "mo": 3}
 
         for x in range(len(gameboard)):
@@ -109,6 +128,7 @@ class GameBoard(Model):
                 cell = gameboard[x][y]
                 
                 if cell.isnumeric():
+                    
                     litter_count = int(cell)
                     
                     while(litter_count > 0):
@@ -119,7 +139,7 @@ class GameBoard(Model):
                         self.schedule.add(agent)
                         
                         litter_count -= 1
-                        
+
                 elif cell == "X":
                     
                     agent = Wall(self.next_id(), self)
@@ -135,33 +155,34 @@ class GameBoard(Model):
                 elif cell == "S":
                     
                     while(robots_count):
+                        
                         if self.robot_roles["marco"] > 0:
                             
                             self.createRobot("marco", x, y)
-                            
                             self.robot_roles["marco"] -= 1
-                            
+                        
                         elif self.robot_roles["polo"] > 0:
                             
                             self.createRobot("polo", x, y)
-                            
                             self.robot_roles["polo"] -= 1
                         
                         elif self.robot_roles["mo"] > 0:
                             
                             self.createRobot("mo", x, y)
-                            
                             self.robot_roles["mo"] -= 1
+                        
                         robots_count -= 1
 
         #Last line of __init__
         self.datacollector = DataCollector(model_reporters={"Grid" : get_grid})
 
+
     def step(self):
 
         self.datacollector.collect(self)
         self.schedule.step()
-        
+    
+    
     def createRobot(self, role, x, y):
         
         agent = Robot(self.next_id(), self, role)
@@ -170,25 +191,23 @@ class GameBoard(Model):
         self.schedule.add(agent)
         
         print(f"Se creo un {role}")
-        
+
+
 def get_grid(model):
 
   grid = np.zeros((model.grid.width, model.grid.height))
   
   for (content, (x, y)) in model.grid.coord_iter():
-      
+    
     if content:
         cell_type = 0
         for agent in content:
             cell_type = agent.type
         grid[x][y] = cell_type
 
-        
-
   return grid
 
 #================================Global Params=====================
-
 
 ROBOTS = 5
 
@@ -197,6 +216,7 @@ MAX_GENERATIONS = 100
 gameboard = open('./inputs/input1.txt').read()
 gameboard = [item.split() for item in gameboard.split('\n')[:-1]]
 gameboard.pop(0)
+
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 
