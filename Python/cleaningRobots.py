@@ -49,7 +49,7 @@ class Robot(Agent):
         self.type = 1
         
         self.role = robot_type
-        self.pos = (0, 0) #Este es el valor inicial, luego se cambia cuando se coloque el agente en el grid
+        self.position = (0, 0) #Este es el valor inicial, luego se cambia cuando se coloque el agente en el grid
         
         self.model_width = 0
         self.model_height = 0
@@ -69,6 +69,9 @@ class Robot(Agent):
         if self.role == "polo":
             if not self.model_height:
                 self.investigate_height()
+            
+            else:
+                self.random_move()
 
     def move(self):
         possible_moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
@@ -83,30 +86,53 @@ class Robot(Agent):
     
     def investigate_width(self):
         
-        next_pos = (self.pos[0]+1, self.pos[1])
+        next_pos = (self.position[0], self.position[1] + 1)
+        diag_up = (self.position[0] - 1, self.position[1] +1)
+        diag_down = (self.position[0] + 1, self.position[1] + 1)
         
-        while self.can_move(next_pos):
-            
+        if self.can_move(next_pos):
             self.model.grid.move_agent(self, next_pos)
-            next_pos = (self.pos[0] + 1, self.pos[1])
-        
-        if not self.can_move(next_pos):
-            
-            update_pos = (self.pos[0], self.pos[1] -1)
-            
-            if self.can_move(update_pos):
-                
-                self.model.grid.move_agent(self, update_pos)
+        elif self.can_move(diag_up):
+            self.model.grid.move_agent(self, diag_up)
+        elif self.can_move(diag_down):
+            self.model.grid.move_agent(self, diag_down)
+        else:
+            # Buscar el camino más corto
+            up_pos = (self.position[0] - 1, self.position[1])
+            if self.can_move(up_pos):
+                self.model.grid.move_agent(self, up_pos)
 
     def investigate_height(self):
         
-        while self.can_move((self.pos)):
-            self.type = 1
+        next_pos = (self.position[0] + 1, self.position[1])
+        diag_left = (self.position[0] + 1, self.position[1] - 1)
+        diag_right = (self.position[0] + 1, self.position[1] + 1)
+
+        if self.can_move(next_pos):
+            self.model.grid.move_agent(self, next_pos)
+        elif self.can_move(diag_left):
+            self.model.grid.move_agent(self, diag_left)
+        elif self.can_move(diag_right):
+            self.model.grid.move_agent(self, diag_right)
+        else:
+            # Buscar el camino más corto
+            right_pos = (self.position[0] + 1, self.position[1])
+            if self.can_move(right_pos):
+                self.model.grid.move_agent(self, right_pos)
     
     
     def can_move(self, pos):
         
-        self.type = 1
+        if self.model.grid.out_of_bounds(pos):
+            return False
+        
+        else:
+            
+            for content in self.model.grid.get_cell_list_contents((pos)):
+                if content.type == 1 or content.type == 3:
+                    return False
+                
+            return True
 
 
 # --- Definición del Modelo ---
@@ -188,8 +214,7 @@ class GameBoard(Model):
         
         self.grid.place_agent(agent, (x, y))
         self.schedule.add(agent)
-        
-        print(f"Se creo un {role}")
+    
 
 def get_grid(model):
     grid_repr = np.zeros((model.grid.width, model.grid.height), dtype=object)
