@@ -44,19 +44,15 @@ class PaperBin(Agent):
 
 class Robot(Agent):
     
-    def __init__(self, id, model, robot_type):
+    def __init__(self, id, model):
         super().__init__(id, model)
         
         self.type = 1
-        
-        self.role = robot_type
+    
         self.position = (0, 0) #Este es el valor inicial, luego se cambia cuando se coloque el agente en el grid
         
         self.model_width = 0
         self.model_height = 0
-        
-        self.find_width = False
-        self.find_height = False
         
         self.capacity = 5
         self.load = 0
@@ -71,28 +67,9 @@ class Robot(Agent):
     def step(self):
         self.register_current_position()
         
-        if self.role == "marco":
-            if not self.find_width:
-                self.investigate_width()
-            else:
-                self.move() #Si ya terminó de investigar, se mueve aleatoriamente 
-    
-        
-        if self.role == "polo":
-            if not self.find_height:
-                self.investigate_height()
-            else:
-                self.move() #Si ya terminó de investigar, se mueve aleatoriamente 
-        
-        if self.role == "mo":
-            self.move()  # Moverse aleatoriamente al iniciar la simulación
+        #     self.move()  # Moverse aleatoriamente
     
     def move(self):
-        
-        # Verificar si el agente ya está en la programación (schedule)
-        # if self not in self.model.schedule.agents:
-        #     # Si no está en la programación, agregarlo
-        #     self.model.schedule.add(self)
         
         # Definir las posibles direcciones de movimiento
         sp = self.pos
@@ -106,58 +83,6 @@ class Robot(Agent):
                 break
         
         self.update_internal_map()  # Actualizar el mapa interno después de moverse
-    
-    
-    def investigate_width(self):
-        
-        next_pos = (self.pos[0], self.pos[1] + 1)
-        diag_up = (self.pos[0] - 1, self.pos[1] +1)
-        diag_down = (self.pos[0] + 1, self.pos[1] + 1)
-        
-        cells = self.model.grid.get_neighborhood(self.pos,
-                                        moore = True,
-                                        include_center = False)
-        
-        if self.can_move(next_pos):
-            self.model.grid.move_agent(self, next_pos)
-        elif self.can_move(diag_up):
-            self.model.grid.move_agent(self, diag_up)
-        elif self.can_move(diag_down):
-            self.model.grid.move_agent(self, diag_down)
-        elif len(cells) < 8:
-            self.find_width = True
-        else:
-            # Buscar el camino más corto
-            up_pos = (self.pos[0] - 1, self.pos[1])
-            if self.can_move(up_pos):
-                self.model.grid.move_agent(self, up_pos)
-        self.update_internal_map() # Actualizar el mapa interno después de investigar el ancho
-    
-    def investigate_height(self):
-        
-        next_pos = (self.pos[0] + 1, self.pos[1])
-        diag_left = (self.pos[0] + 1, self.pos[1] - 1)
-        diag_right = (self.pos[0] + 1, self.pos[1] + 1)
-
-        cells = self.model.grid.get_neighborhood(self.pos,
-                                        moore = True,
-                                        include_center = False)
-            
-        if self.can_move(next_pos):
-            self.model.grid.move_agent(self, next_pos)
-        elif self.can_move(diag_left):
-            self.model.grid.move_agent(self, diag_left)
-        elif self.can_move(diag_right):
-            self.model.grid.move_agent(self, diag_right)
-        elif len(cells) < 8:
-            self.find_height = True
-        else:
-            # Buscar el camino más corto
-            right_pos = (self.pos[0] + 1, self.pos[1])
-            if self.can_move(right_pos):
-                self.model.grid.move_agent(self, right_pos)
-        
-        self.update_internal_map()  # Actualizar el mapa interno después de investigar el alto
     
     def can_move(self, pos):
         if self.model.grid.out_of_bounds(pos):
@@ -209,13 +134,6 @@ class GameBoard(Model):
         self.schedule.step()
         self.datacollector.collect(self)
         
-    def createRobot(self, role, x, y):
-        
-        agent = Robot(self.next_id(), self, role)
-        
-        self.grid.place_agent(agent, (x, y))
-        self.schedule.add(agent)
-        
     def initialize_agents(self, gameboard, x, y, robots_count):
         # Inicializa los agentes
         cell = gameboard[x][y]
@@ -239,14 +157,10 @@ class GameBoard(Model):
             
     def initialize_robots(self, x, y, robots_count):
         while robots_count > 0:
-            agent = Robot(self.next_id(), self, "marco")  # Cambiar "marco" según lo necesario
+            agent = Robot(self.next_id(), self)
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
             robots_count -= 1
-
-    def next_id(self):
-        self.current_id += 1
-        return self.current_id
 
         
 def get_grid(model):
