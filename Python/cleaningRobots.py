@@ -278,9 +278,6 @@ all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
 my_cmap = ListedColormap(['snow', 'slategray', 'thistle', 'black', 'skyblue'])
 
 fig, axis = plt.subplots(figsize=(7, 7))
-axis.set_xticks([])
-axis.set_yticks([])
-patch = plt.imshow(all_grid_colors.iloc[0], cmap=my_cmap)
 
 def animate(i):
     axis.clear()
@@ -297,9 +294,7 @@ def animate(i):
     axis.set_xlim(-0.5, GRID_SIZE_Y - 0.5)  # Ajuste de límites del eje X
     axis.set_ylim(-0.5, GRID_SIZE_X - 0.5)  # Ajuste de límites del eje Y
     axis.invert_yaxis()
-    # axis.axis('off')  # Comentado temporalmente para ver los bordes
 
 
-
-anim = animation.FuncAnimation(fig, animate, frames=len(all_grid_repr), repeat=False)
+anim = animation.FuncAnimation(fig, animate, frames=MAX_GENERATIONS, repeat=False)
 anim.save(filename="cleaningRobots.mp4")
