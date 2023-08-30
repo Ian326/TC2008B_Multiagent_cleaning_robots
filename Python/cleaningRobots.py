@@ -275,7 +275,7 @@ all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
 all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
 
 #COLORES OCUPADOS
-my_cmap = ListedColormap(['pink', 'blue', 'pink', 'red', 'black'])
+my_cmap = ListedColormap(['snow', 'slategray', 'thistle', 'black', 'skyblue'])
 
 fig, axis = plt.subplots(figsize=(7, 7))
 axis.set_xticks([])
