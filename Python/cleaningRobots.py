@@ -60,33 +60,52 @@ class Robot(Agent):
         
         self.capacity = 5
         self.load = 0
+        
+        self.explored_map = {} #Guardar el mapa explorado por los robots
+        self.internal_map = {}  # Iniciar el mapa interno
+        # Las coordenadas iniciales y de la papelera se almacenan aquí
+        self.initial_coordinates = (0, 0)
+        self.paper_bin_coordinates = (0, 0)
     
     
     def step(self):
+        self.register_current_position()
         
         if self.role == "marco":
             if not self.find_width:
                 self.investigate_width()
+            else:
+                self.move() #Si ya terminó de investigar, se mueve aleatoriamente 
     
         
         if self.role == "polo":
             if not self.find_height:
                 self.investigate_height()
-
-    
+            else:
+                self.move() #Si ya terminó de investigar, se mueve aleatoriamente 
+        
+        if self.role == "mo":
+            self.move()  # Moverse aleatoriamente al iniciar la simulación
     
     def move(self):
         
-        possible_moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-        rd.shuffle(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
+        # Verificar si el agente ya está en la programación (schedule)
+        # if self not in self.model.schedule.agents:
+        #     # Si no está en la programación, agregarlo
+        #     self.model.schedule.add(self)
         
-        for px, py in possible_moves:
+        # Definir las posibles direcciones de movimiento
+        sp = self.pos
+        possible_moves = [(sp[0], sp[1] + 1), (sp[0], sp[1] - 1), (sp[0]+ 1, sp[1]), (sp[0] - 1, sp[1]), (sp[0] + 1, sp[1] + 1), (sp[0] + 1, sp[1] - 1), (sp[0] - 1, sp[1] + 1), (sp[0] - 1, sp[1] - 1)]
+        rd.shuffle(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
             
-            next_pos = (self.position[0] + px, self.position[1] + py)
-            
+        # Recorrer las direcciones posibles
+        for next_pos in possible_moves:
             if self.can_move(next_pos):
                 self.model.grid.move_agent(self, next_pos)
                 break
+        
+        self.update_internal_map()  # Actualizar el mapa interno después de moverse
     
     
     def investigate_width(self):
@@ -112,7 +131,7 @@ class Robot(Agent):
             up_pos = (self.pos[0] - 1, self.pos[1])
             if self.can_move(up_pos):
                 self.model.grid.move_agent(self, up_pos)
-    
+        self.update_internal_map() # Actualizar el mapa interno después de investigar el ancho
     
     def investigate_height(self):
         
@@ -137,21 +156,36 @@ class Robot(Agent):
             right_pos = (self.pos[0] + 1, self.pos[1])
             if self.can_move(right_pos):
                 self.model.grid.move_agent(self, right_pos)
+        
+        self.update_internal_map()  # Actualizar el mapa interno después de investigar el alto
     
     def can_move(self, pos):
-        
         if self.model.grid.out_of_bounds(pos):
             return False
+        # Usando 'any' para simplificar la condición
+        return not any(agent.type in [1, 3] for agent in self.model.grid.get_cell_list_contents([pos]))
+    
+    def register_current_position(self):
+        x, y = self.position
+        cell_content = self.model.grid.get_cell_list_contents([self.position])
+        for content in cell_content:
+            # Usamos el mapa interno en lugar de un mapa compartido
+            self.internal_map[(x, y)] = str(content.type)
+    
+    def update_internal_map(self):
+        # Obtener las celdas circundantes
+        neighbors = self.model.grid.get_neighborhood(
+            self.position, moore=True, include_center=False
+        )
         
-        else:
-            
-            for content in self.model.grid.get_cell_list_contents((pos)):
-                if content.type == 1 or content.type == 3:
-                    return False
-                
-            return True
-                
-        
+        for neighbor in neighbors:
+            cell_content = self.model.grid.get_cell_list_contents([neighbor])
+            # Inicializar con un valor por defecto para celdas vacías
+            self.internal_map[neighbor] = '0'
+            for content in cell_content:
+                # Actualizar el mapa interno
+                self.internal_map[neighbor] = str(content.type)
+
 
 class GameBoard(Model):
     
@@ -160,61 +194,10 @@ class GameBoard(Model):
         self.grid = MultiGrid(width, height, torus = False)
         self.schedule = RandomActivation(self)
         self.current_id = 0
-        
-        self.robot_roles = {"marco":1, "polo":1, "mo": 3}
-
-        self.robot_roles = {"marco":1, "polo":1, "mo": 3}
 
         for x in range(len(gameboard)):
             for y in range(len(gameboard[x])):
-
-                cell = gameboard[x][y]
-
-                if cell.isnumeric():
-                    
-                    litter_count = int(cell)
-
-                    while(litter_count > 0):
-                        
-                        agent = Litter(self.next_id(), self)
-                        
-                        self.grid.place_agent(agent, (x, y))
-                        self.schedule.add(agent)
-                        
-                        litter_count -= 1
-
-                elif cell == "X":
-
-                    agent = Wall(self.next_id(), self)
-                    self.grid.place_agent(agent, (x, y))
-                    self.schedule.add(agent)
-
-                elif cell == "P":
-
-                    agent = PaperBin(self.next_id(), self)
-                    self.grid.place_agent(agent, (x, y))
-                    self.schedule.add(agent)
-
-                elif cell == "S":
-                    
-                    while(robots_count):
-                        
-                        if self.robot_roles["marco"] > 0:
-                            
-                            self.createRobot("marco", x, y)
-                            self.robot_roles["marco"] -= 1
-                        
-                        elif self.robot_roles["polo"] > 0:
-                            
-                            self.createRobot("polo", x, y)
-                            self.robot_roles["polo"] -= 1
-                        
-                        elif self.robot_roles["mo"] > 0:
-                            
-                            self.createRobot("mo", x, y)
-                            self.robot_roles["mo"] -= 1
-                        
-                        robots_count -= 1
+                self.initialize_agents(gameboard, x, y, robots_count)
 
         self.datacollector = DataCollector(
             model_reporters={
@@ -223,8 +206,8 @@ class GameBoard(Model):
             })
 
     def step(self):
-        self.datacollector.collect(self)
         self.schedule.step()
+        self.datacollector.collect(self)
         
     def createRobot(self, role, x, y):
         
@@ -232,6 +215,39 @@ class GameBoard(Model):
         
         self.grid.place_agent(agent, (x, y))
         self.schedule.add(agent)
+        
+    def initialize_agents(self, gameboard, x, y, robots_count):
+        # Inicializa los agentes
+        cell = gameboard[x][y]
+        if cell.isnumeric():
+            litter_count = int(cell)
+            while(litter_count > 0):
+                agent = Litter(self.next_id(), self)
+                self.grid.place_agent(agent, (x, y))
+                self.schedule.add(agent)
+                litter_count -= 1
+        elif cell == "X":
+            agent = Wall(self.next_id(), self)
+            self.grid.place_agent(agent, (x, y))
+            self.schedule.add(agent)
+        elif cell == "P":
+            agent = PaperBin(self.next_id(), self)
+            self.grid.place_agent(agent, (x, y))
+            self.schedule.add(agent)
+        elif cell == "S":
+            self.initialize_robots(x, y, robots_count)
+            
+    def initialize_robots(self, x, y, robots_count):
+        while robots_count > 0:
+            agent = Robot(self.next_id(), self, "marco")  # Cambiar "marco" según lo necesario
+            self.grid.place_agent(agent, (x, y))
+            self.schedule.add(agent)
+            robots_count -= 1
+
+    def next_id(self):
+        self.current_id += 1
+        return self.current_id
+
         
 def get_grid(model):
     grid_repr = np.zeros((model.grid.width, model.grid.height), dtype=object)
