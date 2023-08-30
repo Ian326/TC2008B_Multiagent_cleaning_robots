@@ -17,6 +17,7 @@ from mesa.datacollection import DataCollector
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.colors import ListedColormap
 
 plt.rcParams["animation.html"] = "jshtml"
 matplotlib.rcParams['animation.embed_limit'] = 2**128
@@ -273,16 +274,19 @@ for i in range(MAX_GENERATIONS):
 all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
 all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
 
+#COLORES OCUPADOS
+my_cmap = ListedColormap(['pink', 'blue', 'pink', 'red', 'black'])
+
 fig, axis = plt.subplots(figsize=(7, 7))
 axis.set_xticks([])
 axis.set_yticks([])
-patch = plt.imshow(all_grid_colors.iloc[0], cmap=plt.cm.nipy_spectral)
+patch = plt.imshow(all_grid_colors.iloc[0], cmap=my_cmap)
 
 def animate(i):
     axis.clear()
     grid_data_repr = all_grid_repr.iloc[i]
     grid_data_colors = all_grid_colors.iloc[i]
-    axis.imshow(grid_data_colors, cmap=plt.cm.nipy_spectral)
+    axis.imshow(grid_data_colors, cmap=my_cmap)
     for x in range(GRID_SIZE_X):
         for y in range(GRID_SIZE_Y):
             num = grid_data_repr[x][y]
