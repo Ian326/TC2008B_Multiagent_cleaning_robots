@@ -297,5 +297,5 @@ def animate(i):
 
 
 
-anim = animation.FuncAnimation(fig, animate, frames=100, repeat=False)
+anim = animation.FuncAnimation(fig, animate, frames=len(all_grid_repr), repeat=False)
 anim.save(filename="cleaningRobots.mp4")
