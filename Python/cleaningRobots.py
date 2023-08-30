@@ -44,114 +44,73 @@ class PaperBin(Agent):
 
 class Robot(Agent):
     
-    def __init__(self, id, model, robot_type):
+    def __init__(self, id, model):
         super().__init__(id, model)
         
         self.type = 1
-        
-        self.role = robot_type
+    
         self.position = (0, 0) #Este es el valor inicial, luego se cambia cuando se coloque el agente en el grid
         
         self.model_width = 0
         self.model_height = 0
         
-        self.find_width = False
-        self.find_height = False
-        
         self.capacity = 5
         self.load = 0
+        
+        self.explored_map = {} #Guardar el mapa explorado por los robots
+        self.internal_map = {}  # Iniciar el mapa interno
+        # Las coordenadas iniciales y de la papelera se almacenan aquí
+        self.initial_coordinates = (0, 0)
+        self.paper_bin_coordinates = (0, 0)
     
     
     def step(self):
+        self.register_current_position()
         
-        if self.role == "marco":
-            if not self.find_width:
-                self.investigate_width()
-    
-        
-        if self.role == "polo":
-            if not self.find_height:
-                self.investigate_height()
-
-    
+        #     self.move()  # Moverse aleatoriamente
     
     def move(self):
         
-        possible_moves = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+        # Definir las posibles direcciones de movimiento
+        sp = self.pos
+        possible_moves = [(sp[0], sp[1] + 1), (sp[0], sp[1] - 1), (sp[0]+ 1, sp[1]), (sp[0] - 1, sp[1]), (sp[0] + 1, sp[1] + 1), (sp[0] + 1, sp[1] - 1), (sp[0] - 1, sp[1] + 1), (sp[0] - 1, sp[1] - 1)]
         rd.shuffle(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
-        
-        for px, py in possible_moves:
             
-            next_pos = (self.position[0] + px, self.position[1] + py)
-            
+        # Recorrer las direcciones posibles
+        for next_pos in possible_moves:
             if self.can_move(next_pos):
                 self.model.grid.move_agent(self, next_pos)
                 break
-    
-    
-    def investigate_width(self):
         
-        next_pos = (self.pos[0], self.pos[1] + 1)
-        diag_up = (self.pos[0] - 1, self.pos[1] +1)
-        diag_down = (self.pos[0] + 1, self.pos[1] + 1)
-        
-        cells = self.model.grid.get_neighborhood(self.pos,
-                                        moore = True,
-                                        include_center = False)
-        
-        if self.can_move(next_pos):
-            self.model.grid.move_agent(self, next_pos)
-        elif self.can_move(diag_up):
-            self.model.grid.move_agent(self, diag_up)
-        elif self.can_move(diag_down):
-            self.model.grid.move_agent(self, diag_down)
-        elif len(cells) < 8:
-            self.find_width = True
-        else:
-            # Buscar el camino más corto
-            up_pos = (self.pos[0] - 1, self.pos[1])
-            if self.can_move(up_pos):
-                self.model.grid.move_agent(self, up_pos)
-    
-    
-    def investigate_height(self):
-        
-        next_pos = (self.pos[0] + 1, self.pos[1])
-        diag_left = (self.pos[0] + 1, self.pos[1] - 1)
-        diag_right = (self.pos[0] + 1, self.pos[1] + 1)
-
-        cells = self.model.grid.get_neighborhood(self.pos,
-                                        moore = True,
-                                        include_center = False)
-            
-        if self.can_move(next_pos):
-            self.model.grid.move_agent(self, next_pos)
-        elif self.can_move(diag_left):
-            self.model.grid.move_agent(self, diag_left)
-        elif self.can_move(diag_right):
-            self.model.grid.move_agent(self, diag_right)
-        elif len(cells) < 8:
-            self.find_height = True
-        else:
-            # Buscar el camino más corto
-            right_pos = (self.pos[0] + 1, self.pos[1])
-            if self.can_move(right_pos):
-                self.model.grid.move_agent(self, right_pos)
+        self.update_internal_map()  # Actualizar el mapa interno después de moverse
     
     def can_move(self, pos):
-        
         if self.model.grid.out_of_bounds(pos):
             return False
+        # Usando 'any' para simplificar la condición
+        return not any(agent.type in [1, 3] for agent in self.model.grid.get_cell_list_contents([pos]))
+    
+    def register_current_position(self):
+        x, y = self.position
+        cell_content = self.model.grid.get_cell_list_contents([self.position])
+        for content in cell_content:
+            # Usamos el mapa interno en lugar de un mapa compartido
+            self.internal_map[(x, y)] = str(content.type)
+    
+    def update_internal_map(self):
+        # Obtener las celdas circundantes
+        neighbors = self.model.grid.get_neighborhood(
+            self.position, moore=True, include_center=False
+        )
         
-        else:
-            
-            for content in self.model.grid.get_cell_list_contents((pos)):
-                if content.type == 1 or content.type == 3:
-                    return False
-                
-            return True
-                
-        
+        for neighbor in neighbors:
+            cell_content = self.model.grid.get_cell_list_contents([neighbor])
+            # Inicializar con un valor por defecto para celdas vacías
+            self.internal_map[neighbor] = '0'
+            for content in cell_content:
+                # Actualizar el mapa interno
+                self.internal_map[neighbor] = str(content.type)
+
 
 class GameBoard(Model):
     
@@ -160,61 +119,10 @@ class GameBoard(Model):
         self.grid = MultiGrid(width, height, torus = False)
         self.schedule = RandomActivation(self)
         self.current_id = 0
-        
-        self.robot_roles = {"marco":1, "polo":1, "mo": 3}
-
-        self.robot_roles = {"marco":1, "polo":1, "mo": 3}
 
         for x in range(len(gameboard)):
             for y in range(len(gameboard[x])):
-
-                cell = gameboard[x][y]
-
-                if cell.isnumeric():
-                    
-                    litter_count = int(cell)
-
-                    while(litter_count > 0):
-                        
-                        agent = Litter(self.next_id(), self)
-                        
-                        self.grid.place_agent(agent, (x, y))
-                        self.schedule.add(agent)
-                        
-                        litter_count -= 1
-
-                elif cell == "X":
-
-                    agent = Wall(self.next_id(), self)
-                    self.grid.place_agent(agent, (x, y))
-                    self.schedule.add(agent)
-
-                elif cell == "P":
-
-                    agent = PaperBin(self.next_id(), self)
-                    self.grid.place_agent(agent, (x, y))
-                    self.schedule.add(agent)
-
-                elif cell == "S":
-                    
-                    while(robots_count):
-                        
-                        if self.robot_roles["marco"] > 0:
-                            
-                            self.createRobot("marco", x, y)
-                            self.robot_roles["marco"] -= 1
-                        
-                        elif self.robot_roles["polo"] > 0:
-                            
-                            self.createRobot("polo", x, y)
-                            self.robot_roles["polo"] -= 1
-                        
-                        elif self.robot_roles["mo"] > 0:
-                            
-                            self.createRobot("mo", x, y)
-                            self.robot_roles["mo"] -= 1
-                        
-                        robots_count -= 1
+                self.initialize_agents(gameboard, x, y, robots_count)
 
         self.datacollector = DataCollector(
             model_reporters={
@@ -223,15 +131,37 @@ class GameBoard(Model):
             })
 
     def step(self):
-        self.datacollector.collect(self)
         self.schedule.step()
+        self.datacollector.collect(self)
         
-    def createRobot(self, role, x, y):
-        
-        agent = Robot(self.next_id(), self, role)
-        
-        self.grid.place_agent(agent, (x, y))
-        self.schedule.add(agent)
+    def initialize_agents(self, gameboard, x, y, robots_count):
+        # Inicializa los agentes
+        cell = gameboard[x][y]
+        if cell.isnumeric():
+            litter_count = int(cell)
+            while(litter_count > 0):
+                agent = Litter(self.next_id(), self)
+                self.grid.place_agent(agent, (x, y))
+                self.schedule.add(agent)
+                litter_count -= 1
+        elif cell == "X":
+            agent = Wall(self.next_id(), self)
+            self.grid.place_agent(agent, (x, y))
+            self.schedule.add(agent)
+        elif cell == "P":
+            agent = PaperBin(self.next_id(), self)
+            self.grid.place_agent(agent, (x, y))
+            self.schedule.add(agent)
+        elif cell == "S":
+            self.initialize_robots(x, y, robots_count)
+            
+    def initialize_robots(self, x, y, robots_count):
+        while robots_count > 0:
+            agent = Robot(self.next_id(), self)
+            self.grid.place_agent(agent, (x, y))
+            self.schedule.add(agent)
+            robots_count -= 1
+
         
 def get_grid(model):
     grid_repr = np.zeros((model.grid.width, model.grid.height), dtype=object)
@@ -278,9 +208,6 @@ all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
 my_cmap = ListedColormap(['snow', 'slategray', 'thistle', 'black', 'skyblue'])
 
 fig, axis = plt.subplots(figsize=(7, 7))
-axis.set_xticks([])
-axis.set_yticks([])
-patch = plt.imshow(all_grid_colors.iloc[0], cmap=my_cmap)
 
 def animate(i):
     axis.clear()
@@ -297,9 +224,7 @@ def animate(i):
     axis.set_xlim(-0.5, GRID_SIZE_Y - 0.5)  # Ajuste de límites del eje X
     axis.set_ylim(-0.5, GRID_SIZE_X - 0.5)  # Ajuste de límites del eje Y
     axis.invert_yaxis()
-    # axis.axis('off')  # Comentado temporalmente para ver los bordes
 
 
-
-anim = animation.FuncAnimation(fig, animate, frames=len(all_grid_repr), repeat=False)
+anim = animation.FuncAnimation(fig, animate, frames=MAX_GENERATIONS, repeat=False)
 anim.save(filename="cleaningRobots.mp4")
