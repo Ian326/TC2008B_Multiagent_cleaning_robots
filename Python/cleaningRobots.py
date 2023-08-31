@@ -44,7 +44,7 @@ class PaperBin(Agent):
 
 class Robot(Agent):
     
-    def __init__(self, id, model):
+    def __init__(self, id, model, pB_Pos):
         super().__init__(id, model)
         
         self.type = 1
@@ -61,7 +61,7 @@ class Robot(Agent):
         self.internal_map = {}  # Iniciar el mapa interno
         # Las coordenadas iniciales y de la papelera se almacenan aquí
         self.initial_coordinates = (0, 0)
-        self.paper_bin_coordinates = (0, 0)
+        self.paperBin_pos = pB_Pos
         self.steps = 0
     
     def step(self):
@@ -121,7 +121,8 @@ class GameBoard(Model):
         self.schedule = RandomActivation(self)
         
         self.current_id = 0  # Initialize current_id before using it
-
+        self.paperBin_pos = (0,0) #Initialize paperBin coords
+        
         for x in range(len(gameboard)):
             for y in range(len(gameboard[x])):
                 self.initialize_agents(gameboard, x, y, robots_count)
@@ -153,13 +154,14 @@ class GameBoard(Model):
             agent = PaperBin(self.next_id(), self)
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
+            self.paperBin_pos = (x, y)
         elif cell == "S":
-            self.initialize_robots(x, y, robots_count)
+            self.initialize_robots(x, y, robots_count, self.paperBin_pos)
             robots_count = 0
     
-    def initialize_robots(self, x, y, robots_count):
+    def initialize_robots(self, x, y, robots_count, pB_pos):
         while robots_count > 0:
-            agent = Robot(self.next_id(), self)
+            agent = Robot(self.next_id(), self, pB_pos)
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
             robots_count -= 1
