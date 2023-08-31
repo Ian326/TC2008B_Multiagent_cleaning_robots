@@ -96,7 +96,7 @@ class Robot(Agent):
         if self.model.grid.out_of_bounds(pos):
             return False
         # Verificar si hay algún otro robot en la celda de destino
-        return not any(agent.type == 1 for agent in self.model.grid.get_cell_list_contents([pos]))
+        return not any(agent.type == 1 or agent.type == 3 for agent in self.model.grid.get_cell_list_contents([pos]))
     
     def register_current_position(self):
         x, y = self.position
