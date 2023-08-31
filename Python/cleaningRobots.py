@@ -57,8 +57,8 @@ class Robot(Agent):
         self.capacity = 5
         self.load = 0
         
-        self.explored_map = {} #Guardar el mapa explorado por los robots
-        self.internal_map = {}  # Iniciar el mapa interno
+        #Guardar el mapa explorado por los robots
+        
         # Las coordenadas iniciales y de la papelera se almacenan aquí
         self.initial_coordinates = (0, 0)
         self.paperBin_pos = pB_Pos
@@ -69,7 +69,6 @@ class Robot(Agent):
             self.steps += 1
             return
         self.move()
-        self.register_current_position()
 
     
     def move(self):
@@ -81,9 +80,9 @@ class Robot(Agent):
             next_pos = rd.choice(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
             if self.can_move(next_pos):
                     self.model.grid.move_agent(self, next_pos)
+                    self.update_internal_map()  # Actualizar el mapa interno después de moverse
                     break
-        
-        self.update_internal_map()  # Actualizar el mapa interno después de moverse
+
 
     def can_move(self, pos):
         if self.model.grid.out_of_bounds(pos):
@@ -91,26 +90,27 @@ class Robot(Agent):
         # Verificar si hay algún otro robot en la celda de destino
         return not any(agent.type == 1 or agent.type == 3 for agent in self.model.grid.get_cell_list_contents([pos]))
     
-    def register_current_position(self):
-        x, y = self.position
-        cell_content = self.model.grid.get_cell_list_contents([self.position])
-        for content in cell_content:
-            # Usamos el mapa interno en lugar de un mapa compartido
-            self.internal_map[(x, y)] = str(content.type)
-    
     def update_internal_map(self):
         # Obtener las celdas circundantes
-        neighbors = self.model.grid.get_neighborhood(
-            self.position, moore=True, include_center=False
-        )
+        cell_content = self.model.grid.get_cell_list_contents(self.pos)
+        litter = 0
+        for agent in cell_content:
+            # Actualizar el mapa interno
+            if agent != 1:
+                if agent.type == 2:
+                    litter += 1
+                    self.model.robots_internal_map[self.pos[0]][self.pos[1]] = str(litter)
+                if agent.type == 4:
+                    self.model.robots_internal_map[self.pos[0]][self.pos[1]] = 'P'
+        litter = 0
+        neighbors = self.model.grid.get_neighbors(self.pos, moore = True, include_center = False)
+
+        for agent in neighbors:
+            if agent.type == 3:
+                self.model.robots_internal_map[agent.pos[0]][agent.pos[1]] = 'X'
         
-        for neighbor in neighbors:
-            cell_content = self.model.grid.get_cell_list_contents([neighbor])
-            # Inicializar con un valor por defecto para celdas vacías
-            self.internal_map[neighbor] = '0'
-            for content in cell_content:
-                # Actualizar el mapa interno
-                self.internal_map[neighbor] = str(content.type)
+        if self.model.robots_internal_map[self.pos[0]][self.pos[1]] == '':
+            self.model.robots_internal_map[self.pos[0]][self.pos[1]] = '0'
 
 
 class GameBoard(Model):
@@ -122,6 +122,7 @@ class GameBoard(Model):
         
         self.current_id = 0  # Initialize current_id before using it
         self.paperBin_pos = (0,0) #Initialize paperBin coords
+        self.robots_internal_map = np.zeros((width, height), dtype=str)  # Iniciar el mapa interno vacio
         
         for x in range(len(gameboard)):
             for y in range(len(gameboard[x])):
@@ -136,6 +137,7 @@ class GameBoard(Model):
     def step(self):
         self.schedule.step()
         self.datacollector.collect(self)
+        print(self.robots_internal_map)
 
     def initialize_agents(self, gameboard, x, y, robots_count):
         cell = gameboard[x][y]
@@ -196,7 +198,7 @@ def get_grid(model):
 
 # --- Ejecución y visualización ---
 ROBOTS = 5
-MAX_GENERATIONS = 60
+MAX_GENERATIONS = 91
 step_count = 0
 
 gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
