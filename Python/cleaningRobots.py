@@ -48,27 +48,22 @@ class Robot(Agent):
         super().__init__(id, model)
         
         self.type = 1
-    
-        self.position = (0, 0) #Este es el valor inicial, luego se cambia cuando se coloque el agente en el grid
-        
-        self.model_width = 0
-        self.model_height = 0
         
         self.capacity = 5
         self.load = 0
         
-        #Guardar el mapa explorado por los robots
-        
-        # Las coordenadas iniciales y de la papelera se almacenan aquí
-        self.initial_coordinates = (0, 0)
         self.paperBin_pos = pB_Pos
-        self.steps = 0
-    
+
     def step(self):
-        if self.steps == 0:
-            self.steps += 1
-            return
-        self.move()
+
+        if self.model.current_step <= self.model.cells_count:
+            if self.model.current_step == 0:
+                self.model.current_step += 1
+                return
+            self.move()
+
+        else:
+            self.moveUnexplored()
 
     
     def move(self):
@@ -79,11 +74,8 @@ class Robot(Agent):
         valid_moves = [pos for pos in possible_moves if self.can_move(pos)] # Filtrar movimientos válidos
         if valid_moves:
             next_pos = rd.choice(valid_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
-            print(f"Robot with ID {self.unique_id} tries to move to {next_pos}")
             self.model.grid.move_agent(self, next_pos)
             self.update_internal_map()  # Actualizar el mapa interno después de moverse
-                    
-            
 
 
     def can_move(self, pos):
@@ -92,6 +84,7 @@ class Robot(Agent):
         # Verificar si hay algún otro robot en la celda de destino
         return not any(agent.type == 1 or agent.type == 3 for agent in self.model.grid.get_cell_list_contents([pos]))
     
+
     def update_internal_map(self):
         # Obtener las celdas circundantes
         cell_content = self.model.grid.get_cell_list_contents(self.pos)
@@ -113,19 +106,28 @@ class Robot(Agent):
         
         if self.model.robots_internal_map[self.pos[0]][self.pos[1]] == '':
             self.model.robots_internal_map[self.pos[0]][self.pos[1]] = '0'
+        
+    def moveUnexplored(self):
+        print("WIP")
 
 
 class GameBoard(Model):
     
     def __init__(self, width, height, gameboard, robots_count):
-         
+        
         self.grid = MultiGrid(width, height, torus = False)
         self.schedule = RandomActivation(self)
         
         self.current_id = 0  # Initialize current_id before using it
+        self.current_step = 0
+
         self.paperBin_pos = (0,0) #Initialize paperBin coords
-        self.robots_internal_map = np.zeros((width, height), dtype=str)  # Iniciar el mapa interno vacio
         
+        self.robots_internal_map = np.zeros((width, height), dtype=str)  # Iniciar el mapa interno vacio
+        self.unexploredCells = []
+
+        self.cells_count = width*height
+
         for x in range(len(gameboard)):
             for y in range(len(gameboard[x])):
                 self.initialize_agents(gameboard, x, y, robots_count)
@@ -139,7 +141,12 @@ class GameBoard(Model):
     def step(self):
         self.schedule.step()
         self.datacollector.collect(self)
-        print(self.robots_internal_map)
+
+        if self.current_step == self.cells_count:
+            self.updateUnexplored()
+            
+
+        self.current_step += 1
 
     def initialize_agents(self, gameboard, x, y, robots_count):
         cell = gameboard[x][y]
@@ -169,8 +176,20 @@ class GameBoard(Model):
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
             robots_count -= 1
+    
+    def updateUnexplored(self):
 
-        
+        x = 0
+        for row in self.robots_internal_map:
+            y = 0
+            for element in row:
+                if self.robots_internal_map[x][y] == '':
+                    if (x,y) not in self.unexploredCells:
+                        self.unexploredCells.append((x,y))
+                y += 1
+            x += 1
+
+
 def get_grid(model):
     grid_repr = np.zeros((model.grid.width, model.grid.height), dtype=object)
     grid_colors = np.zeros((model.grid.width, model.grid.height))
@@ -200,7 +219,7 @@ def get_grid(model):
 
 # --- Ejecución y visualización ---
 ROBOTS = 5
-MAX_GENERATIONS = 91
+MAX_GENERATIONS = 92
 step_count = 0
 
 gameboard = [line.split() for line in open('./inputs/input2.txt').read().splitlines() if line][1:]
