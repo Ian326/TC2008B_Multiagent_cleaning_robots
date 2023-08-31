@@ -56,41 +56,34 @@ class Robot(Agent):
         
         self.capacity = 5
         self.load = 0
-
-        self.on_paper_bin = False  # Indica si el robot se encuentra sobre una papelera
         
         self.explored_map = {} #Guardar el mapa explorado por los robots
         self.internal_map = {}  # Iniciar el mapa interno
         # Las coordenadas iniciales y de la papelera se almacenan aquí
         self.initial_coordinates = (0, 0)
         self.paper_bin_coordinates = (0, 0)
-        self.first_step = True
+        self.steps = 0
     
     def step(self):
-        if self.first_step:
-            self.first_step = False
+        if self.steps == 0:
+            self.steps += 1
             return
         self.move()
         self.register_current_position()
 
-        
-        #     self.move()  # Moverse aleatoriamente
     
     def move(self):
         
         # Definir las posibles direcciones de movimiento
         sp = self.pos
         possible_moves = [(sp[0], sp[1] + 1), (sp[0], sp[1] - 1), (sp[0]+ 1, sp[1]), (sp[0] - 1, sp[1]), (sp[0] + 1, sp[1] + 1), (sp[0] + 1, sp[1] - 1), (sp[0] - 1, sp[1] + 1), (sp[0] - 1, sp[1] - 1)]
-        rd.shuffle(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
-        
-        # Recorrer las direcciones posibles
-        for next_pos in possible_moves:
+        while(True):
+            next_pos = rd.choice(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
             if self.can_move(next_pos):
-                self.model.grid.move_agent(self, next_pos)
-                break
+                    self.model.grid.move_agent(self, next_pos)
+                    break
         
         self.update_internal_map()  # Actualizar el mapa interno después de moverse
-        self.on_paper_bin = any(isinstance(agent, PaperBin) for agent in self.model.grid.get_cell_list_contents([self.pos]))
 
     def can_move(self, pos):
         if self.model.grid.out_of_bounds(pos):
@@ -118,15 +111,6 @@ class Robot(Agent):
             for content in cell_content:
                 # Actualizar el mapa interno
                 self.internal_map[neighbor] = str(content.type)
-
-    def initialize_robots(self, x, y, robots_count):
-        while robots_count > 0:
-            agent = Robot(self.next_id(), self)
-            self.grid.place_agent(agent, (x, y))
-            self.schedule.add(agent)
-            robots_count -= 1
-
-
 
 
 class GameBoard(Model):
@@ -169,21 +153,9 @@ class GameBoard(Model):
             agent = PaperBin(self.next_id(), self)
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
-        #elif cell == "S":
-        #    self.initialize_robots(x, y, robots_count)
-        #    robots_count = 0
-    
-    def place_robots_at_s(self, gameboard, robots_count):
-        for x in range(len(gameboard)):
-            for y in range(len(gameboard[x])):
-                cell = gameboard[x][y]
-                if cell == "S":
-                    self.initialize_robots(x, y, robots_count)
-                    return
-    
-    def next_id(self):
-        self.current_id += 1
-        return self.current_id
+        elif cell == "S":
+            self.initialize_robots(x, y, robots_count)
+            robots_count = 0
     
     def initialize_robots(self, x, y, robots_count):
         while robots_count > 0:
@@ -197,12 +169,12 @@ def get_grid(model):
     grid_repr = np.zeros((model.grid.width, model.grid.height), dtype=object)
     grid_colors = np.zeros((model.grid.width, model.grid.height))
     for (content, (x, y)) in model.grid.coord_iter():
-        is_paper_bin = False  # Variable para rastrear si la celda contiene una papelera
+        has_paper_bin = False  # Variable para rastrear si la celda contiene una papelera
         for agent in content:
             if isinstance(agent, PaperBin):
-                is_paper_bin = True  # Se encontró una papelera en la celda
                 grid_repr[x][y] = "P"
                 grid_colors[x][y] = 4
+                has_paper_bin = True
             elif isinstance(agent, Litter):
                 grid_repr[x][y] = str(int(grid_repr[x][y]) + 1) if grid_repr[x][y] else "1"
                 grid_colors[x][y] = 2
@@ -210,7 +182,7 @@ def get_grid(model):
                 grid_repr[x][y] = "X"
                 grid_colors[x][y] = 3
             elif isinstance(agent, Robot):
-                if not is_paper_bin:  # Solo se coloca un robot si no hay una papelera en la celda
+                if not has_paper_bin:  # Solo se coloca un robot si no hay una papelera en la celda
                     grid_repr[x][y] = "S"
                     grid_colors[x][y] = 1
             else:
@@ -229,7 +201,6 @@ gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitli
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
-model.place_robots_at_s(gameboard, ROBOTS)
 
 for i in range(MAX_GENERATIONS):
 
