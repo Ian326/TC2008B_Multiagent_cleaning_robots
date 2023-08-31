@@ -76,12 +76,14 @@ class Robot(Agent):
         # Definir las posibles direcciones de movimiento
         sp = self.pos
         possible_moves = [(sp[0], sp[1] + 1), (sp[0], sp[1] - 1), (sp[0]+ 1, sp[1]), (sp[0] - 1, sp[1]), (sp[0] + 1, sp[1] + 1), (sp[0] + 1, sp[1] - 1), (sp[0] - 1, sp[1] + 1), (sp[0] - 1, sp[1] - 1)]
-        while(True):
-            next_pos = rd.choice(possible_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
-            if self.can_move(next_pos):
-                    self.model.grid.move_agent(self, next_pos)
-                    self.update_internal_map()  # Actualizar el mapa interno después de moverse
-                    break
+        valid_moves = [pos for pos in possible_moves if self.can_move(pos)] # Filtrar movimientos válidos
+        if valid_moves:
+            next_pos = rd.choice(valid_moves) #Obtener un movimiento al azar, ya sea arriba, abajo, derecha, izquierda o en las diagonales
+            print(f"Robot with ID {self.unique_id} tries to move to {next_pos}")
+            self.model.grid.move_agent(self, next_pos)
+            self.update_internal_map()  # Actualizar el mapa interno después de moverse
+                    
+            
 
 
     def can_move(self, pos):
@@ -201,7 +203,7 @@ ROBOTS = 5
 MAX_GENERATIONS = 91
 step_count = 0
 
-gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
+gameboard = [line.split() for line in open('./inputs/input2.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
