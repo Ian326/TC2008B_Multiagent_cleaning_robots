@@ -18,7 +18,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.colors import ListedColormap
-import heapq  # Para la cola de prioridad
 
 plt.rcParams["animation.html"] = "jshtml"
 matplotlib.rcParams['animation.embed_limit'] = 2**128
@@ -109,38 +108,7 @@ class Robot(Agent):
             self.model.robots_internal_map[self.pos[0]][self.pos[1]] = '0'
         
     def moveUnexplored(self):
-        closest_unexplored = min(self.model.unexploredCells, key=lambda x: heuristic(self.pos, x))
-        came_from, _ = self.a_star_search(self.pos, closest_unexplored)
-    
-    def a_star_search(self, start, goal):
-        frontier = []  # Cola de prioridad para las celdas a explorar
-        heapq.heappush(frontier, (0, start))
-        came_from = {}
-        cost_so_far = {}
-        came_from[start] = None
-        cost_so_far[start] = 0
-        
-        while frontier:
-            current_cost, current = heapq.heappop(frontier)
-            
-            if current == goal:
-                break
-            
-            for next in self.model.grid.get_neighbors(current, moore=True, include_center=False):  # Movimientos en todas direcciones
-                if any(agent.type == 3 for agent in self.model.grid.get_cell_list_contents([next])):  # No pasar por obstáculos
-                    continue
-                
-                new_cost = current_cost + 1  # En este caso, el costo es simplemente la distancia
-                if next not in cost_so_far or new_cost < cost_so_far[next]:
-                    cost_so_far[next] = new_cost
-                    priority = new_cost + heuristic(goal, next)
-                    heapq.heappush(frontier, (priority, next))
-                    came_from[next] = current
-    
-        return came_from, cost_so_far
-
-    def heuristic(a, b):
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+        print("WIP")
 
 
 class GameBoard(Model):
@@ -170,12 +138,20 @@ class GameBoard(Model):
             })
 
     def step(self):
-        self.schedule.step()
+        # Activar primero a todos los agentes que no son robots
+        for agent in self.schedule.agents:
+            if not isinstance(agent, Robot):
+                agent.step()
+        
+        # Luego, activar solo los robots.
+        for agent in self.schedule.agents:
+            if isinstance(agent, Robot):
+                agent.step()
+                
         self.datacollector.collect(self)
 
         if self.current_step == self.cells_count:
             self.updateUnexplored()
-            
 
         self.current_step += 1
 
@@ -206,6 +182,7 @@ class GameBoard(Model):
             agent = Robot(self.next_id(), self, pB_pos)
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
+            print(f"Robot con ID {agent.unique_id} inicializado en la posición {agent.pos}")  # Línea añadida para imprimir la posición
             robots_count -= 1
     
     def updateUnexplored(self):
