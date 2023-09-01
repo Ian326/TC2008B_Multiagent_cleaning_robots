@@ -363,6 +363,7 @@ fig, axis = plt.subplots(figsize=(7, 7))
 
 
 def animate(i):
+    
     axis.clear()
     grid_data_repr = all_grid_repr.iloc[i]
     grid_data_colors = all_grid_colors.iloc[i]
