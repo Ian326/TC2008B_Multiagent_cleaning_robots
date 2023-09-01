@@ -134,7 +134,6 @@ class Robot(Agent):
         #graph = self.model.mapToGraph(self.model.robots_internal_map)
 
 class GameBoard(Model):
-    
     def __init__(self, width, height, gameboard, robots_count):
         
         self.grid = MultiGrid(width, height, torus = False)
