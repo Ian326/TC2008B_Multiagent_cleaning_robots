@@ -112,7 +112,6 @@ class Robot(Agent):
 
 
 class GameBoard(Model):
-    
     def __init__(self, width, height, gameboard, robots_count):
         
         self.grid = MultiGrid(width, height, torus = False)
