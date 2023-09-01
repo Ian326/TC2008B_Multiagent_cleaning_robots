@@ -57,8 +57,7 @@ class Robot(Agent):
     def step(self):
 
         if self.model.current_step <= self.model.cells_count:
-            if self.model.current_step == 0:
-                self.model.current_step += 1
+            if self.model.current_step == 1:
                 return
             self.move()
 
@@ -103,13 +102,36 @@ class Robot(Agent):
         for agent in neighbors:
             if agent.type == 3:
                 self.model.robots_internal_map[agent.pos[0]][agent.pos[1]] = 'X'
+            # if agent.type == 1:
+            #     self.model.robots_internal_map[agent.pos[0]][agent.pos[1]] = 'S'
         
         if self.model.robots_internal_map[self.pos[0]][self.pos[1]] == '':
             self.model.robots_internal_map[self.pos[0]][self.pos[1]] = '0'
         
+        #self.updateRobotspos()
+    
+    # def updateRobotspos(self):
+    #     x = 0
+    #     for row in self.model.robots_internal_map:
+    #         y = 0
+    #         for element in row:
+    #             if self.model.robots_internal_map[x][y] == 'S':
+    #                 agents = model.grid.get_cell_list_contents([(x, y)])
+    #                 if len(agents) == 0:
+    #                     self.model.robots_internal_map[x][y] == '0'
+    #                 elif any(agent.type == 2 for agent in agents): 
+    #                     self.model.robots_internal_map[x][y] == str(len(agents))
+    #                 elif any(agent.type == 4 for agent in agents): 
+    #                     self.model.robots_internal_map[x][y] == 'P'
+                    
+    
     def moveUnexplored(self):
-        print("WIP")
-
+        end_point = rd.choice(self.model.unexploredCells)
+        
+        start_point = self.pos
+        print("===============")
+        print(self.model.robots_internal_map)
+        #graph = self.model.mapToGraph(self.model.robots_internal_map)
 
 class GameBoard(Model):
     
@@ -139,14 +161,12 @@ class GameBoard(Model):
             })
 
     def step(self):
+        self.current_step += 1
         self.schedule.step()
         self.datacollector.collect(self)
 
         if self.current_step == self.cells_count:
             self.updateUnexplored()
-            
-
-        self.current_step += 1
 
     def initialize_agents(self, gameboard, x, y, robots_count):
         cell = gameboard[x][y]
@@ -188,6 +208,30 @@ class GameBoard(Model):
                         self.unexploredCells.append((x,y))
                 y += 1
             x += 1
+    
+    def mapToGraph(self, matrix):
+        # Crear un diccionario para representar el grafo
+        graph = {}
+
+        # Recorrer la matriz y agregar conexiones
+        for i in range(len(matrix)):
+            for j in range(len(matrix[i])):
+                connections = []
+                if matrix[i][j] not in ('X', 'S'):  # Excluir 'X' y 'S'
+                    # Agregar conexiones en todas las direcciones, incluyendo diagonales
+                    for di in [-1, 0, 1]:
+                        for dj in [-1, 0, 1]:
+                            new_i, new_j = i + di, j + dj
+                            if 0 <= new_i < len(matrix) and 0 <= new_j < len(matrix[i]) and (di != 0 or dj != 0) and matrix[new_i][new_j] not in ('X', 'S'):
+                                connections.append((new_i, new_j))
+                
+                # Asignar las conexiones al nodo actual
+                graph[(i, j)] = connections
+
+        #Imprimir el grafo resultante
+        for node, connections in graph.items():
+            print(f"Nodo {node} -> Conexiones: {connections}")
+        return graph
 
 
 def get_grid(model):
@@ -222,15 +266,15 @@ ROBOTS = 5
 MAX_GENERATIONS = 92
 step_count = 0
 
-gameboard = [line.split() for line in open('./inputs/input2.txt').read().splitlines() if line][1:]
+gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
 
 for i in range(MAX_GENERATIONS):
 
-  step_count += 1
   model.step()
+  step_count += 1
 
 all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
 all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
