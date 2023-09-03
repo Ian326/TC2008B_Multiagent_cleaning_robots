@@ -65,10 +65,13 @@ class Robot(Agent):
             self.explore_random()
         #Las siguientes iteraciones, explorará las celdas faltantes
         elif self.model.exploredCellsCount != self.model.cellsCount:
+                self.model.state = 2
                 self.explore_missing()
         #[WIP] Recolectar basura
         else:
+            self.model.state = 3
             print("Se han visitado todas las celdas")
+            print(f"Celdas con basura: {self.model.litterCoords}")
     
     
     def can_move(self, pos):
@@ -104,7 +107,7 @@ class Robot(Agent):
         start_point = self.pos
         
         print(self.model.robots_internal_map)
-        #Elegir una celda no explorada
+        #Si hay celdas no exploradas. Elegir una celda no explorada
         if self.model.unexploredCells:
             if not self.queuedMovements:
                 
@@ -127,7 +130,10 @@ class Robot(Agent):
                     self.model.grid.move_agent(self, self.queuedMovements[0])
                     self.update_internal_map()
                     self.queuedMovements.pop(0)
-                
+        #Si ya se exploraron todas las celdas, pasar a la siguiente fase
+        else:
+            self.model.state = 3
+            
         print(f"Se han visitado {self.model.exploredCellsCount}/{self.model.cellsCount}")
     
     #Con cada movimiento de un Robot, se llena un mapa con lo que hay en esa celda. Si hay muros los registrará
@@ -162,6 +168,9 @@ class Robot(Agent):
         #Si la celda no contiene agentes, entonces está 'libre'
         if self.model.robots_internal_map[self.pos[0]][self.pos[1]] == '':
             self.model.robots_internal_map[self.pos[0]][self.pos[1]] = '0'
+        elif (self.model.robots_internal_map[self.pos[0]][self.pos[1]].isnumeric() and self.model.robots_internal_map[self.pos[0]][self.pos[1]] != '0'):
+            if (self.pos[0],self.pos[1]) not in self.model.litterCoords:
+                    self.model.litterCoords.append((self.pos[0],self.pos[1]))
 
 # --- Definición del Modelo ---
 class GameBoard(Model):
@@ -183,6 +192,10 @@ class GameBoard(Model):
         self.exploredCellsCount = 0
         self.unexploredCells = []
         
+        self.litterCoords = []
+        
+        self.state = 1
+        
         for x in range(len(gameboard)):
             for y in range(len(gameboard[x])):
                 self.initialize_agents(gameboard, x, y, robots_count)
@@ -195,7 +208,9 @@ class GameBoard(Model):
 
 
     def step(self):
-        
+        if self.state == 3:
+            self.litterCoords.sort()
+            
         self.current_step += 1
         
         self.schedule.step()
@@ -203,6 +218,8 @@ class GameBoard(Model):
 
         if self.current_step >= self.cellsCount:
             self.updateUnexplored()
+        if self.state == 3:
+            self.litterCoords.sort()
 
     #Inicializa los agentes de acuerdo a la lectura del input.txt
     def initialize_agents(self, gameboard, x, y, robots_count):
@@ -343,7 +360,7 @@ def get_grid(model):
 
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
-MAX_GENERATIONS = 150
+MAX_GENERATIONS = 100
 
 gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
