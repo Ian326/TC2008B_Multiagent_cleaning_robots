@@ -55,6 +55,8 @@ class Robot(Agent):
         
         self.paperBin_pos = pB_Pos
         self.queuedMovements = []
+        
+        self.targetLitter = ()
     
     
     def step(self):
@@ -71,7 +73,17 @@ class Robot(Agent):
         else:
             self.model.state = 3
             print("Se han visitado todas las celdas")
-            print(f"Celdas con basura: {self.model.litterCoords}")
+            
+            if not self.targetLitter:
+                self.assign_Litter()
+                
+            else:
+                
+                if (self.pos == self.targetLitter and self.load < self.capacity):
+                    print("self.pickUpLitter()")
+                
+                else:
+                    print("self.moveToLitter()")
     
     
     def can_move(self, pos):
@@ -118,8 +130,9 @@ class Robot(Agent):
                 graph = self.model.mapToGraph(self.model.robots_internal_map)
                 
                 path = self.model.bfs(graph, start_point, end_point)
-                path.pop(0)
-                self.queuedMovements = path
+                if path:
+                    path.pop(0)
+                    self.queuedMovements = path
             #Seguir los movimientos para llegar a la celda seleccionada
             else:
                 
@@ -135,6 +148,25 @@ class Robot(Agent):
             self.model.state = 3
             
         print(f"Se han visitado {self.model.exploredCellsCount}/{self.model.cellsCount}")
+    
+    def assign_Litter(self):
+        
+        if self.model.litterCoords:
+                
+                nearestLitterDist = 71
+                nearestLitterPos = ()
+                
+                for litterPos in self.model.litterCoords:
+                    
+                    dist = np.sqrt( (self.pos[0]-litterPos[0]) **2 + (self.pos[1]-litterPos[1])**2 )
+                    
+                    if dist < nearestLitterDist:
+                        nearestLitterDist = dist
+                        nearestLitterPos = (litterPos[0],litterPos[1])
+                
+                self.targetLitter = nearestLitterPos
+                self.model.litterCoords.remove(self.targetLitter)
+                print(f"Se ha asignado al robot en {self.pos} la basura en {self.targetLitter}")
     
     #Con cada movimiento de un Robot, se llena un mapa con lo que hay en esa celda. Si hay muros los registrará
     def update_internal_map(self):
