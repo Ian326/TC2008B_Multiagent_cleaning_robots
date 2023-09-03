@@ -105,26 +105,28 @@ class Robot(Agent):
         
         print(self.model.robots_internal_map)
         #Elegir una celda no explorada
-        if not self.queuedMovements:
-            
-            end_point = rd.choice(self.model.unexploredCells)
-            print(f"El robot en la posicion {start_point} se moverá a la celda vacia {end_point}")
-            
-            graph = self.model.mapToGraph(self.model.robots_internal_map)
-            
-            path = self.model.bfs(graph, start_point, end_point)
-            path.pop(0)
-            self.queuedMovements = path
-        #Seguir los movimientos para llegar a la celda seleccionada
-        else:
-            
-            end_point = self.queuedMovements[0]
-
-            if self.can_move(self.queuedMovements[0]):
+        if self.model.unexploredCells:
+            if not self.queuedMovements:
                 
-                self.model.grid.move_agent(self, self.queuedMovements[0])
-                self.update_internal_map()
-                self.queuedMovements.pop(0)
+                end_point = rd.choice(self.model.unexploredCells)
+                self.model.unexploredCells.remove(end_point)
+                print(f"Celdas vacías: {self.model.unexploredCells}")
+                
+                graph = self.model.mapToGraph(self.model.robots_internal_map)
+                
+                path = self.model.bfs(graph, start_point, end_point)
+                path.pop(0)
+                self.queuedMovements = path
+            #Seguir los movimientos para llegar a la celda seleccionada
+            else:
+                
+                end_point = self.queuedMovements[0]
+
+                if self.can_move(self.queuedMovements[0]):
+                    
+                    self.model.grid.move_agent(self, self.queuedMovements[0])
+                    self.update_internal_map()
+                    self.queuedMovements.pop(0)
                 
         print(f"Se han visitado {self.model.exploredCellsCount}/{self.model.cellsCount}")
     
@@ -341,7 +343,7 @@ def get_grid(model):
 
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
-MAX_GENERATIONS = 92
+MAX_GENERATIONS = 150
 
 gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
