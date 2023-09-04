@@ -84,8 +84,6 @@ class Robot(Agent):
                 self.assign_Litter()
             else:
                 
-                self.update_internal_map()      
-                self.update_pos_map()
                 self.model.updateMapToGraph(self.model.robots_pos_map)
                 #print(f"[Robot en {self.pos}] ya tengo TC: {self.targetCell}")
 
@@ -96,7 +94,7 @@ class Robot(Agent):
                     return
                 if (self.alreadyCleaned):
                     print(f"[Robot en {self.pos}] ya limpie la basura. Esperando instrucciones...")
-                    #self.moveToPaperBin()
+                    self.moveToPaperBin()
 
                 else:
                     self.move()
@@ -267,6 +265,7 @@ class Robot(Agent):
             print(f"[Robot en {self.pos}] se moverá al paperBin. Steps: {path}")
             if self.can_move(path[0]):
                 self.model.grid.move_agent(self, path[0])
+                self.update_pos_map()
                 path.pop(0)
                 print(f"[Robot se movio a {self.pos}]")
             else:
@@ -280,25 +279,27 @@ class Robot(Agent):
         if self.queuedMovements:
             if self.can_move(self.queuedMovements[0]):
                     self.model.grid.move_agent(self, self.queuedMovements[0])
+                    self.update_pos_map()
                     print(f"[Robot se movió a {self.pos}]")
                     self.queuedMovements.pop(0)
         else:
             print(f"[Robot en {self.pos}] No tengo movimientos pendientes.")
-            # self.model.updateMapToGraph(self.model.robots_pos_map)
-            # path = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
+            self.model.updateMapToGraph(self.model.robots_pos_map)
+            path = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
             
-            # if path:
-            #     if(len(path) > 1):
-            #         path.pop(0)
-            #     print(f"[Robot en {self.pos}] se moverá a {self.targetCell}. Steps: {path}")
-            #     if self.can_move(path[0]):
-            #         self.model.grid.move_agent(self, path[0])
-            #         path.pop(0)
-            #         print(f"[Robot se movio a {self.pos}]")
-            #     else:
-            #         print(f"El robot no se puede mover a {path[0]}. Esperando un step...")
-            # else:
-            #     print("No encontré camino a casa. Esperando un step...")
+            if path:
+                if(len(path) > 1):
+                    path.pop(0)
+                print(f"[Robot en {self.pos}] se moverá a {self.targetCell}. Steps: {path}")
+                if self.can_move(path[0]):
+                    self.model.grid.move_agent(self, path[0])
+                    self.update_pos_map()
+                    path.pop(0)
+                    print(f"[Robot se movio a {self.pos}]")
+                else:
+                    print(f"El robot no se puede mover a {path[0]}. Esperando un step...")
+            else:
+                print("No encontré camino a casa. Esperando un step...")
     
     def update_pos_map(self):
         # Si last_position está definida, quita la 'S' de esa posición
@@ -322,9 +323,9 @@ class Robot(Agent):
         # SE PUEDE BORRAR
         if self.model.robots_pos_map[self.pos[0]][self.pos[1]] == '':
             self.model.robots_pos_map[self.pos[0]][self.pos[1]] = '0'
-        elif (self.model.robots_pos_map[self.pos[0]][self.pos[1]].isnumeric() and self.model.robots_pos_map[self.pos[0]][self.pos[1]] != '0'):
-            if (self.pos[0],self.pos[1]) not in self.model.litterCoords:
-                self.model.litterCoords.append((self.pos[0],self.pos[1]))
+        # elif (self.model.robots_pos_map[self.pos[0]][self.pos[1]].isnumeric() and 
+        #       self.model.robots_pos_map[self.pos[0]][self.pos[1]] != '0'):
+            
 
     #Con cada movimiento de un Robot, se llena un mapa con lo que hay en esa celda. Si hay muros los registrará
     def update_internal_map(self):
@@ -559,7 +560,7 @@ def get_grid(model):
 
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
-MAX_GENERATIONS = 125
+MAX_GENERATIONS = 300
 
 gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
