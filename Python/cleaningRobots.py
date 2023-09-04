@@ -45,7 +45,7 @@ class PaperBin(Agent):
 class Robot(Agent):
     
     #--- Constructor del Robot ---
-    def __init__(self, id, model, pB_Pos):
+    def __init__(self, id, model):
         super().__init__(id, model)
         
         self.type = 1
@@ -53,11 +53,10 @@ class Robot(Agent):
         self.capacity = 5
         self.load = 0
         
-        self.paperBin_pos = pB_Pos
         self.queuedMovements = []
         
         self.targetLitter = ()
-    
+        self.alreadyCleaned = False
     
     def step(self):
         #Las primeras n (Igual al tamaño del tablero) iteraciones, explorará sin orden
@@ -65,27 +64,41 @@ class Robot(Agent):
             if self.model.current_step == 1:
                 return
             self.explore_random()
+        
         #Las siguientes iteraciones, explorará las celdas faltantes
         elif self.model.exploredCellsCount != self.model.cellsCount:
                 self.model.state = 2
                 self.explore_missing()
+        
         #[WIP] Recolectar basura
         else:
-            print(self.model.current_step)
             self.model.state = 3
             
             if not self.targetLitter:
                 self.assign_Litter()
+                print(f"[Robot en {self.pos}] Iré a la basura en {self.targetLitter}")
+                print(f"[Robot en {self.pos}] Pasos para llegar: {self.queuedMovements}")
+                return
                 
             else:
                 
-                if (self.pos == self.targetLitter):
+                if (self.pos == self.targetLitter and not self.alreadyCleaned):
+                    
+                    self.queuedMovements = []
                     self.pickUpLitter()
-                    print(f"[Robot en {self.pos}] Terminé de recoger basura")
-                    self.moveToPaperBin()
-                    #return
+                    return
+                
+                if (self.alreadyCleaned):
+                    print("self.moveToPaperBin()")
                 else:
-                    self.move()
+                    if self.queuedMovements:
+                        self.move()
+                    else:
+                        if self.pos == self.model.paperBin_pos:
+                            print(f"[Robot] estoy en la papelera. Reseteando targetLitter")
+                            self.targetLitter = ()
+                        return
+
     
     
     def can_move(self, pos):
@@ -147,9 +160,7 @@ class Robot(Agent):
         else:
             self.model.state = 3
             
-        print(f"Se han visitado {self.model.exploredCellsCount}/{self.model.cellsCount}")
-        print("==========================================================================")
-    
+    #Elige una celda con basura como objetivo
     def assign_Litter(self):
         
         if self.model.litterCoords:
@@ -159,7 +170,7 @@ class Robot(Agent):
                 
                 for litterPos in self.model.litterCoords:
                     
-                    dist = np.sqrt( (self.pos[0]-litterPos[0]) **2 + (self.pos[1]-litterPos[1])**2 )
+                    dist = np.sqrt( (self.pos[0]-litterPos[0])**2 + (self.pos[1]-litterPos[1])**2 )
                     
                     if dist < nearestLitterDist:
                         nearestLitterDist = dist
@@ -169,17 +180,14 @@ class Robot(Agent):
                 self.model.litterCoords.remove(self.targetLitter)
                 
                 if self.pos != self.targetLitter:
-                    
+    
                     graph = self.model.mapToGraph(self.model.robots_internal_map)
                     
                     path = self.model.bfs(graph, self.pos, self.targetLitter)
-                    
                     path.pop(0)
                     
                     self.queuedMovements = path
-                
-                print(f"[Robot en {self.pos}] Iré a la basura en {self.targetLitter}")
-                print(f"[Robot en {self.pos}] Pasos para llegar: {self.queuedMovements}")
+            
     
     def pickUpLitter(self):
         cell = self.model.grid.get_cell_list_contents(self.pos)
@@ -189,23 +197,22 @@ class Robot(Agent):
                 self.model.grid.remove_agent(cell[i])
                 self.model.schedule.remove(cell[i])
                 self.load += 1
-    
+        self.alreadyCleaned = True
+        print(f"[Robot en {self.pos}] Terminé de recoger basura")
+        
     def moveToPaperBin(self):
         print(f"[Robot en {self.pos}] Me moveré a la papelera")
-        if not self.queuedMovements:
-                
-                end_point = self.model.paperBin_pos
-                
-                graph = self.model.mapToGraph(self.model.robots_internal_map)
-                
-                path = self.model.bfs(graph, self.pos, end_point)
-                
-                path.pop(0)
-                
-                self.queuedMovements = path
-                print(f"[Robot en {self.pos}] Pasos a seguir: {self.queuedMovements}\n")
-                self.model.grid.move_agent(self, self.queuedMovements[0])
-                self.queuedMovements.pop(0)
+        
+        graph = self.model.mapToGraph(self.model.robots_internal_map)
+        
+        path = self.model.bfs(graph, self.pos, self.model.paperBin_pos)
+        path.pop(0)
+        
+        self.queuedMovements = path
+        self.model.grid.move_agent(self, self.queuedMovements[0])
+        self.queuedMovements.pop(0)
+        print(f"[Robot en {self.pos}] Pasos hacia la papelera: {self.queuedMovements}\n")
+        self.alreadyCleaned = False
                 
     
     def move(self):
@@ -307,18 +314,19 @@ class GameBoard(Model):
 
 
     def step(self):
-        if self.state == 3:
-            self.litterCoords.sort()
             
         self.current_step += 1
-        
+        print(self.current_step)
         self.schedule.step()
+        
         self.datacollector.collect(self)
 
         if self.current_step >= self.cellsCount:
             self.updateUnexplored()
+            
         if self.state == 3:
             self.litterCoords.sort()
+            
 
     #Inicializa los agentes de acuerdo a la lectura del input.txt
     def initialize_agents(self, gameboard, x, y, robots_count):
@@ -342,7 +350,7 @@ class GameBoard(Model):
             self.paperBin_pos = (x, y)
         
         elif cell == "S":
-            self.initialize_robots(x, y, robots_count, self.paperBin_pos)
+            self.initialize_robots(x, y, robots_count)
             robots_count = 0
     
     
@@ -351,10 +359,10 @@ class GameBoard(Model):
         self.schedule.add(agent)
     
     
-    def initialize_robots(self, x, y, robots_count, pB_pos):
+    def initialize_robots(self, x, y, robots_count):
        
         while robots_count > 0:
-            agent = Robot(self.next_id(), self, pB_pos)
+            agent = Robot(self.next_id(), self)
             self.place_agent(agent, (x, y))
             robots_count -= 1
     
@@ -512,7 +520,7 @@ def animate(i):
     axis.set_xlim(-0.5, GRID_SIZE_Y - 0.5)
     axis.set_ylim(-0.5, GRID_SIZE_X - 0.5)
     axis.invert_yaxis()
-    axis.annotate(f'Step: {i}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', va='center', fontsize=12, color='black')
+    axis.annotate(f'Step: {i+1}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', va='center', fontsize=12, color='black')
 # animacion de la simulacion
 anim = animation.FuncAnimation(fig, animate, frames=MAX_GENERATIONS, repeat=False)
 anim.save(filename="cleaningRobots.mp4")
