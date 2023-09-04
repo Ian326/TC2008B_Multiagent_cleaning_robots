@@ -61,15 +61,12 @@ class Robot(Agent):
     def step(self):
         #Las primeras n (Igual al tamaño del tablero) iteraciones, explorará sin orden
         if self.model.current_step <= self.model.cellsCount:
-            if self.model.current_step == 1:
-                return
-            self.explore_random()
-        
+            if self.model.current_step >= 1:
+                self.explore_random()
         #Las siguientes iteraciones, explorará las celdas faltantes
         elif self.model.exploredCellsCount != self.model.cellsCount:
-                
                 self.explore_missing()
-        
+                print(self.model.robots_internal_map)
         #[WIP] Recolectar basura
         else:
             print("Se exploraron todas las celdas")
@@ -98,7 +95,6 @@ class Robot(Agent):
             #             if self.pos == self.model.paperBin_pos:
             #                 self.move()
             #             return
-
     
     
     def can_move(self, pos):
@@ -131,90 +127,51 @@ class Robot(Agent):
         self.update_internal_map()      
         self.model.updateMapToGraph(self.model.robots_internal_map)
         
-        #Si hay celdas no exploradas. Elegir una celda no explorada
-        if self.model.unexploredCells:
+        print(f"Atributos del Robot - SP: {self.pos} TC: {self.targetCell} QM: {self.queuedMovements}")
             
-            print(f"{len(self.model.unexploredCells)} Celdas por explorar: {self.model.unexploredCells}")
-            print(f"Atributos del Robot - SP: {self.pos} TC: {self.targetCell} QM: {self.queuedMovements}")
+        if not self.targetCell:
+                
+            nearestUCDist = 71
             
-            if not self.queuedMovements:
-                
-                if not self.targetCell:
+            #Sin movimientos pendientes, sin target, con celdas por descubrir
+            if self.model.unexploredCells:
+                print(f"{len(self.model.unexploredCells)} Celdas por explorar: {self.model.unexploredCells}")
+                for cell in self.model.unexploredCells:
                     
-                    nearestUCDist = 71
+                    dist = np.sqrt( (self.pos[0]-cell[0])**2 + (self.pos[1]-cell[1])**2 )
                     
-                    for cell in self.model.unexploredCells:
-                        
-                        dist = np.sqrt( (self.pos[0]-cell[0])**2 + (self.pos[1]-cell[1])**2 )
-                        
-                        if dist < nearestUCDist:
-                            nearestUCDist = dist
-                            self.targetCell = (cell[0],cell[1])
+                    if dist < nearestUCDist:
+                        nearestUCDist = dist
+                        self.targetCell = (cell[0],cell[1])
+
+                self.model.unexploredCells.remove(self.targetCell)
+            else:
+                print(f"[Robot en {self.pos}] Ya no tengo target, ya no puedo tomar otro")
+                return
+        
+        self.queuedMovements = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
+            
+        if(self.queuedMovements):
+            self.queuedMovements.pop(0)
+        
+            print(f"El robot en la celda {self.pos} explorará la celda {self.targetCell}")
+            print(f"Movimientos: {self.queuedMovements}")
+            #Seguir el movimiento para llegar a la celda seleccionada
+            if self.can_move(self.queuedMovements[0]):
                 
-                if self.targetCell in self.model.unexploredCells: 
-                    self.model.unexploredCells.remove(self.targetCell)
+                self.model.grid.move_agent(self, self.queuedMovements[0])
+                print(f"El robot se movio a la celda {self.pos}")
                 
-                self.queuedMovements = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
                 
-                if(self.queuedMovements):
-                    self.queuedMovements.pop(0)
-                
-                    print(f"El robot en la celda {self.pos} explorará la celda {self.targetCell}")
-                    print(f"Movimientos: {self.queuedMovements}")
-                    #Seguir el movimiento para llegar a la celda seleccionada
-                    if self.can_move(self.queuedMovements[0]):
-                        
-                        self.model.grid.move_agent(self, self.queuedMovements[0])
-                        print(f"El robot se movio a la celda {self.pos}")
-                        
-                        
-                        if self.pos == self.targetCell:
-                            self.targetCell = ()
-                        self.queuedMovements = []
-                            
-                else: 
-                    print(f"No se encontró un camino de {self.pos} a {self.targetCell}")
-                    neighbors = self.model.grid.get_neighbors(self.pos, moore = True, include_center = False)
-                    for agent in neighbors:
-                        #print(f"Agent info: {agent.pos}, Type:{agent.type}")
-                        if agent.pos == self.targetCell and agent.type == 3:
-                            self.targetCell = ()
-                            return
-                    if self.model.robots_internal_map[self.targetCell[0]][self.targetCell[1]] == 'X':
-                        self.targetCell = ()
-                    #print(self.model.cellsGraph)
-        else:
-            if self.targetCell:
-                self.queuedMovements = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
-                
-                if(self.queuedMovements):
-                    self.queuedMovements.pop(0)
-                
-                    print(f"El robot en la celda {self.pos} explorará la celda {self.targetCell}")
-                    print(f"Movimientos: {self.queuedMovements}")
-                    #Seguir el movimiento para llegar a la celda seleccionada
-                    if self.can_move(self.queuedMovements[0]):
-                        
-                        self.model.grid.move_agent(self, self.queuedMovements[0])
-                        print(f"El robot se movio a la celda {self.pos}")
-                        
-                        
-                        if self.pos == self.targetCell:
-                            self.targetCell = ()
-                        self.queuedMovements = []
-                            
-                else: 
-                    print(f"No se encontró un camino de {self.pos} a {self.targetCell}")
-                    neighbors = self.model.grid.get_neighbors(self.pos, moore = True, include_center = False)
-                    for agent in neighbors:
-                        #print(f"Agent info: {agent.pos}, Type:{agent.type}")
-                        if agent.pos == self.targetCell and agent.type == 3:
-                            self.targetCell = ()
-                            return
-                    if self.model.robots_internal_map[self.targetCell[0]][self.targetCell[1]] == 'X':
-                        self.targetCell = ()
-                    #print(self.model.cellsGraph)
-        print(self.model.robots_internal_map)
+                if self.pos == self.targetCell:
+                    self.targetCell = ()
+                    
+            self.queuedMovements = []
+                    
+        else: 
+            print(f"No se encontró un camino de {self.pos} a {self.targetCell}")
+            if self.model.robots_internal_map[self.targetCell[0]][self.targetCell[1]] == 'X':
+                self.targetCell = ()
             
             
     #Elige una celda con basura como objetivo
@@ -376,15 +333,16 @@ class GameBoard(Model):
 
     def step(self):
             
-        self.current_step += 1
         print(self.current_step)
+        
         self.schedule.step()
         
         self.datacollector.collect(self)
 
         if self.current_step == self.cellsCount:
             self.updateUnexplored()
-
+            
+        self.current_step += 1
             
             
 
