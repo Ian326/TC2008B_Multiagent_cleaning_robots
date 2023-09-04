@@ -146,7 +146,8 @@ class Robot(Agent):
 
                 self.model.unexploredCells.remove(self.targetCell)
             else:
-                print(f"[Robot en {self.pos}] Ya no tengo target, ya no puedo tomar otro")
+                print(f"[Robot en {self.pos}] Mision completada. Esperando a los demás...")
+                self.explore_random()
                 return
         
         self.queuedMovements = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
@@ -486,8 +487,8 @@ def get_grid(model):
 
 
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
-ROBOTS = 1
-MAX_GENERATIONS = 175
+ROBOTS = 5
+MAX_GENERATIONS = 125
 
 gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
