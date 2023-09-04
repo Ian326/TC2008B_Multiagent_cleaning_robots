@@ -96,7 +96,7 @@ class Robot(Agent):
                     return
                 if (self.alreadyCleaned):
                     print(f"[Robot en {self.pos}] ya limpie la basura. Esperando instrucciones...")
-                    #self.moveToPaperBin()
+                    self.moveToPaperBin()
 
                 else:
                     self.move()
@@ -252,6 +252,9 @@ class Robot(Agent):
                 print(f"Volveré a ir a mi celda asignada")
                 self.targetCell = self.targetCell_aux
                 self.targetCell_aux = ()
+            
+            some_new_position = (some_x, some_y) # Calcule una nueva posición aquí.
+            self.model.grid.move_agent(self, some_new_position)
             return
                 
         if self.targetCell != self.model.paperBin_pos:
