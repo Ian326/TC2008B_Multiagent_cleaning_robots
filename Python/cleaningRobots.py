@@ -72,6 +72,9 @@ class Robot(Agent):
                 #print(self.model.robots_internal_map)
                 print(f"Se han explorado {self.model.exploredCellsCount}/{self.model.cellsCount} celdas")
         
+                #print(self.model.robots_internal_map)
+                print(f"Se han explorado {self.model.exploredCellsCount}/{self.model.cellsCount} celdas")
+        
         #[WIP] Recolectar basura
         else:
             if self.state == "explore_missing":
