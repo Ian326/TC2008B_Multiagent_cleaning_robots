@@ -250,9 +250,7 @@ class Robot(Agent):
                 print(f"Volveré a ir a mi celda asignada")
                 self.targetCell = self.targetCell_aux
                 self.targetCell_aux = ()
-            
-            some_new_position = (some_x, some_y) # Calcule una nueva posición aquí.
-            self.model.grid.move_agent(self, some_new_position)
+
             return
                 
         if self.targetCell != self.model.paperBin_pos:
@@ -377,7 +375,9 @@ class GameBoard(Model):
         
         self.current_id = 0
         self.current_step = 0
-    
+
+        self.simulation_continue = True
+
         self.paperBin_pos = (0,0)
         
         self.robots_internal_map = np.zeros((width, height), dtype=str)
@@ -403,6 +403,8 @@ class GameBoard(Model):
 
 
     def step(self):
+        if not self.simulation_continue:  # Añadir esta línea
+            return
         print("================================")
         print(self.current_step)
         if self.exploredCellsCount == self.cellsCount:
@@ -410,7 +412,8 @@ class GameBoard(Model):
             self.litterCoords.sort()
             print(self.robots_pos_map)
             print(f"Hay {len(self.litterCoords)} celdas con basura: {self.litterCoords}")
-        
+            self.simulation_continue = False
+
         self.schedule.step()
         
         self.datacollector.collect(self)
@@ -563,7 +566,7 @@ def get_grid(model):
 
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
-MAX_GENERATIONS = 300
+step_count = 0
 
 gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
@@ -571,8 +574,9 @@ GRID_SIZE_Y = len(gameboard[0])
 
 model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
 
-for i in range(MAX_GENERATIONS):
-  model.step()
+while model.simulation_continue:
+    model.step()
+    step_count += 1
 
 #Optiene todos los colores y registros de celdas por el tipo de agente
 all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
@@ -618,5 +622,5 @@ def animate(i):
     axis.invert_yaxis()
     axis.annotate(f'Step: {i+1}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', va='center', fontsize=12, color='black')
 # animacion de la simulacion
-anim = animation.FuncAnimation(fig, animate, frames=MAX_GENERATIONS, repeat=False)
+anim = animation.FuncAnimation(fig, animate, frames=step_count, repeat=False)
 anim.save(filename="cleaningRobots.mp4")
