@@ -84,39 +84,6 @@ public class MapGenerator : MonoBehaviour
                         Instantiate(garbagePrefab, newPos, Quaternion.identity);
                     }
                 }
-                //Basuras regadas pero sin ubicar espacio
-                /*else if (int.TryParse(cellType, out int value) && value > 0)
-                {
-                    // La altura en Y donde todas las latas de basura estarán situadas
-                    float yPosition = 0.09600022f;
-
-                    // Si el tipo de celda es un número y ese número es mayor que 0, entonces es basura.
-                    for (int i = 0; i < value; i++)
-                    {
-                        // Ahora vamos a randomizar un poco las coordenadas x y z
-                        // dentro de los límites de la celda para que la lata
-                        // no se instancie exactamente en la misma posición.
-                        float randomX = Random.Range(-0.5f, 0.5f);
-                        float randomZ = Random.Range(-0.5f, 0.5f);
-                        
-                        Instantiate(garbagePrefab, new Vector3(newX + randomX, yPosition, newZ + randomZ), Quaternion.identity);
-                    }
-                }/*
-
-                /*else if (int.TryParse(cellType, out int value) && value > 0)
-                {
-                    // Inicializamos la altura de la primera lata
-                    float yOffset = 0.09600022f;
-                    // Si el tipo de celda es un número y ese número es mayor que 0, entonces es basura.
-                    for (int i = 0; i < value; i++)
-                    {
-                        // Ajustamos la posición vertical en Y de cada lata
-                        float yPosition = yOffset + 0.30386477f * i; //0.307f
-
-                        Instantiate(garbagePrefab, new Vector3(newX, yPosition, newZ), Quaternion.identity);
-                    }
-                }*/
-
                 // Instanciamos el prefab en la posición (x, 1, y), sobre el piso.
                 if (prefabToUse != null)
                 {
@@ -124,6 +91,7 @@ public class MapGenerator : MonoBehaviour
                 }
             }
         }
+        
         // Ajusta la posición de la cámara para que esté centrada en la cuadrícula.
         Vector3 cameraPosition = new Vector3(startX + ((float)cols / 2 * tileDimension), mainCamera.transform.position.y, startZ - ((float)rows / 2 * tileDimension) +1);
 
