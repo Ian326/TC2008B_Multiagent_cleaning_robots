@@ -226,6 +226,10 @@ class Robot(Agent):
                                 return
         else:
             print(f"[Robot en {self.pos}] Enhorabuena, no hay más basura!")
+            if self.state == "cleaning":
+                self.state = "done"
+                self.model.robots_finished += 1
+                
             self.move_random()
     
     
@@ -425,12 +429,14 @@ class GameBoard(Model):
         
         self.grid = MultiGrid(width, height, torus = False)
         self.schedule = RandomActivation(self)
+        self.simulation_continue = True
         
         self.current_id = 0
         self.current_step = 0
         self.current_state = ""
         self.total_steps = 0
-        self.robotCount = robots_count
+        
+        self.robots_finished = 0
         
         self.paperBin_pos = (0,0)
         
@@ -457,6 +463,10 @@ class GameBoard(Model):
 
 
     def step(self):
+        
+        if self.robots_finished == 5:
+            self.simulation_continue = False
+
         print("================================")
         print(self.current_step)
         if self.exploredCellsCount == self.cellsCount:
@@ -616,16 +626,16 @@ def get_grid(model):
 
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
-MAX_GENERATIONS = 4900
-
-gameboard = [line.split() for line in open('./inputs/input5.txt').read().splitlines() if line][1:]
+step_count = 0
+gameboard = [line.split() for line in open('./inputs/input3.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 
 model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
 
-for i in range(MAX_GENERATIONS):
-  model.step()
+while model.simulation_continue:
+    model.step()
+    step_count += 1
 
 #Optiene todos los colores y registros de celdas por el tipo de agente
 all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
@@ -671,5 +681,5 @@ def animate(i):
     axis.invert_yaxis()
     axis.annotate(f'Step: {i+1}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', va='center', fontsize=12, color='black')
 # animacion de la simulacion
-anim = animation.FuncAnimation(fig, animate, frames=MAX_GENERATIONS, repeat=False)
+anim = animation.FuncAnimation(fig, animate, frames=step_count, repeat=False)
 anim.save(filename="cleaningRobots.mp4")
