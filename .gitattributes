@@ -1,0 +1,2 @@
+# Archivos específicos con configuración LF
+*.meta text eol=lf
