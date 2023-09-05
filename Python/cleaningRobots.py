@@ -70,7 +70,7 @@ class Robot(Agent):
                 self.state = "explore_missing"
                 self.explore_missing()
                 
-                #print(f"Se han explorado {self.model.exploredCellsCount}/{self.model.cellsCount} celdas")
+                print(f"Se han explorado {self.model.exploredCellsCount}/{self.model.cellsCount} celdas")
         
         #[WIP] Recolectar basura
         else:
@@ -78,35 +78,46 @@ class Robot(Agent):
                 self.state = "cleaning"
                 self.targetCell = ()
             
-            #print(f"Atributos del Robot {self.pos} - TC: {self.targetCell} QM: {self.queuedMovements} Load: {self.load} Cleaned: {self.alreadyCleaned}")
+            print(f"==Atributos del Robot {self.pos} - TC: {self.targetCell} QM: {self.queuedMovements} Load: {self.load} Cleaned: {self.alreadyCleaned}==")
             
             #Agregar una Celda para moverse
             if not self.targetCell:
-                #print(f"[Robot en {self.pos}] Asignando TC...")
+                print(f"[Robot en {self.pos}] Asignando TC...")
                 self.assign_Litter()
             
             #Al tener una celda para moverse, checa donde está
             else:
                 
-                #Si llegó a la celda, con basura, la limpia (No debe ser la papelera)
+                #Estoy en la TC? Si no es la papelera, limpio
                 if (self.pos == self.targetCell and 
                     self.pos != self.model.paperBin_pos and not 
                     self.alreadyCleaned):
                     
-                    #print(f"[Robot en {self.pos}] ya estoy encima de la basura. Limpiando...")
-                    self.queuedMovements = []
+                    print(f"[Robot en {self.pos}] ya estoy encima de la basura. Limpiando...")
                     
-                    self.pickUpLitter() #self.alreadyCleaned = True
-                    return
+                    #Limpia la TC y los movimientos
+                    self.queuedMovements = []
+                    self.targetCell_aux = self.targetCell
+                    self.targetCell = ()
+                    
+                    self.pickUpLitter()
                 
-                if (self.alreadyCleaned and self.pos != self.model.paperBin_pos):
+                #Tengo que ir a la papelera?
+                if (self.alreadyCleaned and not
+                    self.targetCell and 
+                    self.pos != self.model.paperBin_pos):
+                    
                     self.moveToPaperBin()
-                    if(self.alreadyCleaned and self.pos == self.model.paperBin_pos):
+                    
+                    if(self.pos == self.model.paperBin_pos):
                         self.disposePaperBin()
                         return
                     return
-                if(self.alreadyCleaned and self.pos == self.model.paperBin_pos):
+                
+                #Estoy en la papelera? Dejaré la basura
+                if(self.pos == self.model.paperBin_pos):
                     self.disposePaperBin()
+                    
                 self.move()
 
     def can_move(self, pos):
@@ -142,7 +153,7 @@ class Robot(Agent):
         self.model.updateMapToGraph(self.model.robots_internal_map)
         
                     
-        #print(f"Atributos del Robot - SP: {self.pos} TC: {self.targetCell} QM: {self.queuedMovements}")
+        print(f"Atributos del Robot - SP: {self.pos} TC: {self.targetCell} QM: {self.queuedMovements}")
             
         if not self.targetCell:
                 
@@ -161,7 +172,7 @@ class Robot(Agent):
 
                 self.model.unexploredCells.remove(self.targetCell)
             else:
-                #print(f"[Robot en {self.pos}] Mision completada. Esperando a los demás...")
+                print(f"[Robot en {self.pos}] Mision completada. Esperando a los demás...")
                 self.move_random()
                 return
         
@@ -170,8 +181,8 @@ class Robot(Agent):
         if(self.queuedMovements):
             self.queuedMovements.pop(0)
         
-            #print(f"El robot en la celda {self.pos} explorará la celda {self.targetCell}")
-            #print(f"Movimientos: {self.queuedMovements}")
+            print(f"El robot en la celda {self.pos} explorará la celda {self.targetCell}")
+            print(f"Movimientos: {self.queuedMovements}")
             #Seguir el movimiento para llegar a la celda seleccionada
             if self.can_move(self.queuedMovements[0]):
                 
@@ -185,7 +196,7 @@ class Robot(Agent):
             self.queuedMovements = []
                     
         else: 
-            #print(f"No se encontró un camino de {self.pos} a {self.targetCell}")
+            print(f"No se encontró un camino de {self.pos} a {self.targetCell}")
             if self.model.robots_internal_map[self.targetCell[0]][self.targetCell[1]] == 'X':
                 self.targetCell = ()
     
@@ -193,55 +204,77 @@ class Robot(Agent):
     def assign_Litter(self):
         
         if self.model.litterCoords:
-                self.queuedMovements = []
-                nearestLitterDist = 71
-                nearestLitterPos = ()
                 
-                for litterPos in self.model.litterCoords:
-                    
-                    dist = np.sqrt( (self.pos[0]-litterPos[0])**2 + (self.pos[1]-litterPos[1])**2 )
-                    
-                    if dist < nearestLitterDist:
-                        nearestLitterDist = dist
-                        nearestLitterPos = (litterPos[0],litterPos[1])
+            nearestLitterDist = 71
+            nearestLitterPos = ()
+            
+            for litterPos in self.model.litterCoords:
                 
-                self.targetCell = nearestLitterPos
-                self.model.litterCoords.remove(self.targetCell)
-                #print(f"[Robot en {self.pos}] Iré a la basura en {self.targetCell}")
-                if self.pos != self.targetCell:
+                dist = np.sqrt( (self.pos[0]-litterPos[0])**2 + (self.pos[1]-litterPos[1])**2 )
+                
+                if dist < nearestLitterDist:
+                    nearestLitterDist = dist
+                    nearestLitterPos = (litterPos[0],litterPos[1])
+            
+            self.targetCell = nearestLitterPos
+            self.model.litterCoords.remove(self.targetCell)
+            print(f"[Robot en {self.pos}] TC asignada {self.targetCell}")
+            
+            #Tengo que ir a la celda asignada?
+            if self.pos != self.targetCell:
+                
+                #self.model.updateMapToGraph(self.model.robots_pos_map)
+                
+                #Busca un camino
+                path = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
+                if path:
+                    print(f"[Robot en {self.pos}] El camino más corto encontrado es: {path}")
+                    if len(path) > 1:
+                        path.pop(0)
+                    self.queuedMovements.append(path[0])
+                
+                #No hay camino? Por qué?
+                else:
                     
-                    self.model.updateMapToGraph(self.model.robots_pos_map)
+                    if self.pos == self.model.paperBin_pos:
+                        print(f"[Robot en papelera] No puedo moverme a mi TC. Me moveré random")
+                        self.move_random()
+                        print(f"[Robot en papelera] Me movía a {self.pos}")
                     
-                    path = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
-                    if path:
-                        #print(f"El camino más corto encontrado es: {path}")
-                        if len(path) > 1:
-                            path.pop(0)
-                        self.queuedMovements.append(path[0]) 
-                    else: 
-                        for agent in self.model.grid.get_cell_list_contents(self.targetCell):
-                            if agent.type == 1:
-                                #print(f"Ya hay un robot en {self.targetCell}. Asignando otra...")
-                                self.assign_Litter()
-                                return
+                    for agent in self.model.grid.get_cell_list_contents(self.targetCell):
+                        if agent.type == 1:
+                            print(f"Ya hay un robot en {self.targetCell}. Esperando un step...")
+                            break
+
         else:
-            print(f"[Robot en {self.pos} - LT: {self.load}] Enhorabuena, no hay más basura!")
-            if self.state == "cleaning":
-                self.state = "done"
-                self.model.robots_finished += 1
+            # if self.pos == self.model.paperBin_pos:
+            #     self.disposePaperBin()
+            # if self.load != 0 and self.pos != self.model.paperBin_pos:
+            #     self.moveToPaperBin()
+            # else:
+                print(f"[Robot en {self.pos} - LT: {self.load}] Enhorabuena, no hay más basura!")
+                if self.state == "cleaning":
+                    self.state = "done"
+                    self.model.robots_finished += 1
                 
-            self.move_random()
+            #self.move_random()
     
     
     def pickUpLitter(self):
         cell = self.model.grid.get_cell_list_contents(self.pos)
-        toCollect = min(self.capacity-self.load, len(cell))
+        toCollect = min(self.capacity-self.load, len(cell)-1)
+        print(f"[Robot en {self.pos}] Puedo limpiar {self.capacity-self.load} basuras, en la celda hay {len(cell)-1} basuras")
         for i in range(toCollect):
             if cell[i].type == 2:
                 self.model.grid.remove_agent(cell[i])
                 self.model.schedule.remove(cell[i])
                 self.load += 1
-        self.alreadyCleaned = True
+        if self.load == 5:
+            print(f"[Robot en {self.pos}] Ya no tengo espacio")
+            self.alreadyCleaned = True
+        else:
+            print(f"[Robot en {self.pos}] Todavía tengo espacio, buscaré otra basura")
+            self.assign_Litter()
     
     
     def disposePaperBin(self):
@@ -252,25 +285,24 @@ class Robot(Agent):
         
         missingTrash = len(self.model.grid.get_cell_list_contents(self.targetCell_aux))
         
-        #print(f"Robot en papelera: Ya dejé la basura, hay {missingTrash} basuras en mi celda asignada")
+        print(f"[Robot en papelera] Ya dejé la basura, hay {missingTrash} basura(s) en mi celda asignada {self.targetCell_aux}")
         
         if  missingTrash == 0:
-            #print(f"Robot en papelera: Buscaré una nueva posición con basura")
+            print(f"[Robot en papelera] Buscaré una nueva posición con basura")
             self.targetCell = ()
             self.targetCell_aux = ()
             self.assign_Litter()
         
         else:
-            #print(f"Robot en papelera: Me falta recoger basura en {self.targetCell_aux} Volveré a esa celda")
+            print(f"[Robot en papelera] Me falta recoger basura en {self.targetCell_aux} Volveré a esa celda")
             self.targetCell = self.targetCell_aux
             self.targetCell_aux = ()
     
     
     def moveToPaperBin(self):
         #Si llamaste esta funcion es porque quieres ir a la papelera, entonces, tu targetCell es la papelera
-        if self.targetCell != self.model.paperBin_pos:
-            self.targetCell_aux = self.targetCell
-            self.targetCell = self.model.paperBin_pos
+
+        self.targetCell = self.model.paperBin_pos
         
         #Checar si existe una ruta posible a la papelera
         self.model.updateMapToGraph(self.model.robots_pos_map)
@@ -280,56 +312,60 @@ class Robot(Agent):
             
             if(len(path) > 1):
                 path.pop(0)
-            #print(f"[Robot en {self.pos}] se moverá al paperBin. Steps: {path}")
+            print(f"[Robot en {self.pos}] se moverá al paperBin. Steps: {path}")
             
             if self.can_move(path[0]):
                 self.model.grid.move_agent(self, path[0])
                 self.update_pos_map()
                 path.pop(0)
-                #print(f"[Robot se movio a {self.pos}]")
+                print(f"[Robot se movio a {self.pos}]")
             
             else:
-                #print(f"El robot no se puede mover a {path[0]}. Se esperará un step")
-                self.move_random()
+                print(f"[Robot en {self.pos}] No me puedo mover a {path[0]}. Me esperaré un step")
+                #self.move_random()
                 #print(f"El robot se movió a {self.pos}")
         else:
-            #print("La papelera está ocupada. Se esperará un step")
-            self.move_random()
-            #print(f"El robot se movió a {self.pos}")
+            print(f"[Robot en {self.pos}] La papelera está ocupada. Se esperará un step")
+            # self.move_random()
+            # print(f"[Robot en {self.pos}] El robot se movió a {self.pos}")
 
     
     def move(self):
         if self.queuedMovements:
-            #print(f"[Robot en {self.pos}] Tenía movimientos pendientes: {self.queuedMovements}")
+            print(f"[Robot en {self.pos}] Tengo movimientos pendientes: {self.queuedMovements}")
             if self.can_move(self.queuedMovements[0]):
                 self.model.grid.move_agent(self, self.queuedMovements[0])
                 self.update_pos_map()
-                #print(f"[Robot se movió a {self.pos}]")
+                print(f"[Robot se movió a {self.pos}]")
                 self.queuedMovements.pop(0)
         else:
             
-            #print(f"[Robot en {self.pos}] No tengo movimientos pendientes. Intentaré ir a {self.targetCell}")
+            if self.targetCell == self.model.paperBin_pos:
+                print(f"[Robot en {self.pos}] No tengo movimientos pendientes. Intentaré ir a la paperBin")
+            else:
+                print(f"[Robot en {self.pos}] No tengo movimientos pendientes. Intentaré ir a {self.targetCell}")
+            
             self.model.updateMapToGraph(self.model.robots_pos_map)
             path = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
             
             if path:
                 if(len(path) > 1):
                     path.pop(0)
-                #print(f"[Robot en {self.pos}] se moverá a {self.targetCell}. Steps: {path}")
+                print(f"[Robot en {self.pos}] se moverá a {self.targetCell}. Steps: {path}")
                 if self.can_move(path[0]):
                     self.model.grid.move_agent(self, path[0])
                     self.update_pos_map()
                     path.pop(0)
-                    #print(f"[Robot se movio a {self.pos}]")
+                    print(f"[Robot se movio a {self.pos}]")
                 else:
-                    #print(f"El robot no se puede mover a {path[0]}. Se esperará un step")
+                    print(f"El robot no se puede mover a {path[0]}. Se esperará un step")
                     self.move_random()
-                    #print(f"El robot se movió a {self.pos}")
+                    print(f"El robot se movió a {self.pos}")
                     
             else:
-                #print("No encontré camino a casa. Me moveré random")
-                self.move_random()
-                #print(f"El robot se movió a {self.pos}")
+                print(f"No encontré camino a {self.targetCell}. Se esperará un step")
+                # self.move_random()
+                # print(f"El robot se movió a {self.pos}")
     
     
     def move_random(self):
@@ -452,15 +488,14 @@ class GameBoard(Model):
 
     def step(self):
         
-        if self.robots_finished == 5:
+        if len(self.litterCoords) == 1:
             self.simulation_continue = False
 
         print("================================")
         print(self.current_step)
         if self.exploredCellsCount == self.cellsCount:
-            #print("Se exploraron todas las celdas\n")
-            #self.litterCoords.sort()
-            #print(self.robots_pos_map)
+            print("Se exploraron todas las celdas\n")
+            print(self.robots_pos_map)
             print(f"Hay {len(self.litterCoords)} celdas con basura: {self.litterCoords}")
         
         self.schedule.step()
@@ -526,7 +561,6 @@ class GameBoard(Model):
                 y += 1
             x += 1
         
-        self.unexploredCells.sort()
     
     #Convertir la matriz de las celdas exploradas por los robots en un grafo para el BFS
     def updateMapToGraph(self, matrix):
@@ -615,7 +649,7 @@ def get_grid(model):
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
 step_count = 0
-gameboard = [line.split() for line in open('./inputs/input5.txt').read().splitlines() if line][1:]
+gameboard = [line.split() for line in open('./inputs/input2.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 
