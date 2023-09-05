@@ -72,9 +72,6 @@ class Robot(Agent):
                 #print(self.model.robots_internal_map)
                 print(f"Se han explorado {self.model.exploredCellsCount}/{self.model.cellsCount} celdas")
         
-                #print(self.model.robots_internal_map)
-                print(f"Se han explorado {self.model.exploredCellsCount}/{self.model.cellsCount} celdas")
-        
         #[WIP] Recolectar basura
         else:
             if self.state == "explore_missing":
@@ -85,14 +82,12 @@ class Robot(Agent):
             
             #Agregar una Celda para moverse
             if not self.targetCell:
-                print(f"[Robot en {self.pos}] No tengo TC, asignando una...")
+                print(f"[Robot en {self.pos}] Asignando TC...")
                 self.assign_Litter()
             
             #Al tener una celda para moverse, checa donde está
             else:
                 
-                self.model.updateMapToGraph(self.model.robots_pos_map)
-
                 #Si llegó a la celda, con basura, la limpia (No debe ser la papelera)
                 if (self.pos == self.targetCell and 
                     self.pos != self.model.paperBin_pos and not 
@@ -102,13 +97,16 @@ class Robot(Agent):
                     self.queuedMovements = []
                     
                     self.pickUpLitter() #self.alreadyCleaned = True
+                    return
                 
                 if (self.alreadyCleaned and self.pos != self.model.paperBin_pos):
                     self.moveToPaperBin()
+                    if(self.alreadyCleaned and self.pos == self.model.paperBin_pos):
+                        self.disposePaperBin()
+                        return
                     return
                 if(self.alreadyCleaned and self.pos == self.model.paperBin_pos):
                     self.disposePaperBin()
-                
                 self.move()
 
     def can_move(self, pos):
@@ -353,8 +351,9 @@ class Robot(Agent):
         
         if valid_moves:
             next_pos = rd.choice(valid_moves)
-            self.model.grid.move_agent(self, next_pos)
-            self.update_pos_map()
+            if next_pos != self.model.paperBin_pos:
+                self.model.grid.move_agent(self, next_pos)
+                self.update_pos_map()
     
     
     def update_pos_map(self):
@@ -617,9 +616,9 @@ def get_grid(model):
 
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
-MAX_GENERATIONS = 250
+MAX_GENERATIONS = 4900
 
-gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
+gameboard = [line.split() for line in open('./inputs/input5.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 
