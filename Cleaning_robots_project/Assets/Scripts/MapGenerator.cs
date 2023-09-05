@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using SimpleJSON;
+using System.Linq;
 
 
 public class MapGenerator : MonoBehaviour
@@ -46,13 +47,63 @@ public class MapGenerator : MonoBehaviour
                 }
                 else if (cellType == "S")
                 {
-                    prefabToUse = robotPrefab;
+                    for (int i = 0; i < total_robots; i++) // Bucle para iterar para que se agreguen los 5 robots
+                    {
+                        Instantiate(robotPrefab, new Vector3(newX, 0.09600022f, newZ), Quaternion.identity);
+                    }
+                    continue;  // No hay necesidad de volver a instanciar al final del bucle, así que podemos continuar con la siguiente iteración.
                 }
                 else if (cellType == "P")
                 {
                     prefabToUse = trashcanPrefab;
                 }
                 else if (int.TryParse(cellType, out int value) && value > 0)
+                {
+                    // La altura en Y donde todas las latas de basura estarán situadas
+                    float yPosition = 0.09600022f;
+                    
+                    // Lista para mantener un registro de las coordenadas ocupadas dentro de esta celda
+                    List<Vector3> occupiedPositions = new List<Vector3>();
+
+                    // Si el tipo de celda es un número y ese número es mayor que 0, entonces es basura.
+                    for (int i = 0; i < value; i++)
+                    {
+                        Vector3 newPos;
+
+                        do
+                        {
+                            float randomX = Random.Range(-0.5f, 0.5f);
+                            float randomZ = Random.Range(-0.5f, 0.5f);
+                            newPos = new Vector3(newX + randomX, yPosition, newZ + randomZ);
+                        }
+                        while (occupiedPositions.Any(pos => Vector3.Distance(newPos, pos) < 0.188)); // Asegurarse de que no está demasiado cerca de otra lata
+                        
+                        // Añadir la nueva posición a la lista de posiciones ocupadas
+                        occupiedPositions.Add(newPos);
+                        
+                        Instantiate(garbagePrefab, newPos, Quaternion.identity);
+                    }
+                }
+                //Basuras regadas pero sin ubicar espacio
+                /*else if (int.TryParse(cellType, out int value) && value > 0)
+                {
+                    // La altura en Y donde todas las latas de basura estarán situadas
+                    float yPosition = 0.09600022f;
+
+                    // Si el tipo de celda es un número y ese número es mayor que 0, entonces es basura.
+                    for (int i = 0; i < value; i++)
+                    {
+                        // Ahora vamos a randomizar un poco las coordenadas x y z
+                        // dentro de los límites de la celda para que la lata
+                        // no se instancie exactamente en la misma posición.
+                        float randomX = Random.Range(-0.5f, 0.5f);
+                        float randomZ = Random.Range(-0.5f, 0.5f);
+                        
+                        Instantiate(garbagePrefab, new Vector3(newX + randomX, yPosition, newZ + randomZ), Quaternion.identity);
+                    }
+                }/*
+
+                /*else if (int.TryParse(cellType, out int value) && value > 0)
                 {
                     // Inicializamos la altura de la primera lata
                     float yOffset = 0.09600022f;
@@ -64,7 +115,7 @@ public class MapGenerator : MonoBehaviour
 
                         Instantiate(garbagePrefab, new Vector3(newX, yPosition, newZ), Quaternion.identity);
                     }
-                }   
+                }*/
 
                 // Instanciamos el prefab en la posición (x, 1, y), sobre el piso.
                 if (prefabToUse != null)
