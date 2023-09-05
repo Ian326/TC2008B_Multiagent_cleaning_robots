@@ -22,7 +22,7 @@ public class MapGenerator : MonoBehaviour
         int width = lines[0].Split(' ').Length;
         int height = lines.Length;
         int startX = -51, startZ = 51;
-        int tileDimension = 2; // Asumiendo que el piso mide 2x2
+        int tileDimension = 2; // Asumiendo que el Tile (piso) mide 2x2
 
         for (int y = 0; y < rows; y++)
         {
@@ -47,11 +47,11 @@ public class MapGenerator : MonoBehaviour
                 }
                 else if (cellType == "S")
                 {
-                    for (int i = 0; i < total_robots; i++) // Bucle para iterar para que se agreguen los 5 robots
+                    for (int i = 0; i < total_robots; i++) // Ciclo para iterar para que se agreguen los 5 robots
                     {
                         Instantiate(robotPrefab, new Vector3(newX, 0.09600022f, newZ), Quaternion.identity);
                     }
-                    continue;  // No hay necesidad de volver a instanciar al final del bucle, así que podemos continuar con la siguiente iteración.
+                    continue;  // Continuar a la siguiente
                 }
                 else if (cellType == "P")
                 {
@@ -76,7 +76,7 @@ public class MapGenerator : MonoBehaviour
                             float randomZ = Random.Range(-0.5f, 0.5f);
                             newPos = new Vector3(newX + randomX, yPosition, newZ + randomZ);
                         }
-                        while (occupiedPositions.Any(pos => Vector3.Distance(newPos, pos) < 0.188)); // Asegurarse de que no está demasiado cerca de otra lata
+                        while (occupiedPositions.Any(pos => Vector3.Distance(newPos, pos) < 0.188)); // Asegurarse de que no está demasiado cerca de otra lata, tonamdo en cuenta un diámetro de 0.188 por lata
                         
                         // Añadir la nueva posición a la lista de posiciones ocupadas
                         occupiedPositions.Add(newPos);
