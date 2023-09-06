@@ -506,6 +506,7 @@ class GameBoard(Model):
         
         if self.robots_finished >= 5:
             print(f"El programa ha terminado. xSteps: {self.step_exploration_done} tSteps: {self.current_step}")
+            self.saveData_toFile()
             self.simulation_continue = False
     
     #Inicializa los agentes de acuerdo a la lectura del input.txt
@@ -607,8 +608,17 @@ class GameBoard(Model):
                     nuevo_camino.append(vecino)
                     cola.append((vecino, nuevo_camino))
         #Si no encuentra un camino, devuelve None
-        return None 
+        return None
     
+    def saveData_toFile(self):
+        df = self.datacollector.get_model_vars_dataframe()
+        model = df["GridRepr"]
+        model.to_csv('./outputs/model.txt', sep='\n', index=False, header=False)
+        with open('./outputs/model.txt', 'r') as archivo:
+            contenido = archivo.read()
+        contenido = contenido.replace("'", "").replace('"', '')
+        with open('./outputs/model.txt', 'w') as archivo:
+            archivo.write(contenido)
 
 # Representacion de los agentes en la animacion con colores
 def get_grid(model):

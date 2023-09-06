@@ -16,8 +16,9 @@ class Server(BaseHTTPRequestHandler):
 
     def do_POST(self):
         # Leer el archivo 'input.txt'
-        with open('C:\\Users\\marif\\OneDrive\\Escritorio\\TC2008B_Multiagent_cleaning_robots\\Python\\inputs\\input1.txt', 'r') as f:
+        with open('../Python/inputs/input1.txt', 'r') as f:
             # Leer la primera línea para obtener las dimensiones del mapa
+            Console.WriteLine("Abri esta wea")
             first_line = f.readline().strip()
             rows, cols = map(int, first_line.split())
             # Calcular el total de celdas basado en las dimensiones
