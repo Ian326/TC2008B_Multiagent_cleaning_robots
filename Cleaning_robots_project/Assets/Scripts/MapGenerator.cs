@@ -13,14 +13,18 @@ public class MapGenerator : MonoBehaviour
     public GameObject trashcanPrefab; // prefab para "P"
     public List <GameObject> garbagePrefab; // prefab para la basura
     // public Camera mainCamera; //Cámara 2D
-
-    public void GenerateMapFromData(string mapData, int rows, int cols, int total_cells, int total_trash, int total_obstacles, int total_robots, int total_trashcans)
+    public void ClearOldMap() {
+    // Asumiendo que todos los objetos del mapa son hijos de este GameObject
+    foreach (Transform child in transform) {
+        Destroy(child.gameObject);
+    }
+}
+    public void GenerateMapFromData(string mapData, int rows, int cols, int total_robots)
     {
+        ClearOldMap();  // Limpia el mapa anterior
         // Dividir el texto del mapa en líneas.
-        string[] lines = mapData.Trim().Split('\n');
+        string[] lines = mapData.Split('\n');
         
-        int width = lines[0].Split(' ').Length;
-        int height = lines.Length;
         int startX = -51, startZ = 51;
         int tileDimension = 2; // Asumiendo que el Tile (piso) mide 2x2
 
@@ -48,6 +52,7 @@ public class MapGenerator : MonoBehaviour
                 }
                 else if (cellType == "S")
                 {
+                    //prefabToUse = robotPrefab;
                     for (int i = 0; i < total_robots; i++) // Ciclo para iterar para que se agreguen los 5 robots
                     {
                         Instantiate(robotPrefab, new Vector3(newX, 0.09600022f, newZ), Quaternion.identity);
@@ -95,23 +100,5 @@ public class MapGenerator : MonoBehaviour
             }
         }
         
-        // // Ajusta la posición de la cámara para que esté centrada en la cuadrícula.
-        // Vector3 cameraPosition = new Vector3(startX + ((float)cols / 2 * tileDimension), mainCamera.transform.position.y, startZ - ((float)rows / 2 * tileDimension) +1);
-
-        // // Ajusta la cámara para modo ortográfico
-        // mainCamera.orthographic = true;
-
-        // // Rotar la cámara 90 grados en X para que mire hacia abajo
-        // mainCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
-
-        // // Ajustar la altura (posición Y) de la cámara para que abarque toda la cuadrícula.
-        // float cameraHeight = Mathf.Max(rows, cols) * 0.5f * tileDimension;
-        // cameraPosition.y = cameraHeight;
-        
-        // // Asignar la nueva posición y rotación a la cámara
-        // mainCamera.transform.position = cameraPosition;
-        
-        // // Ajustar el tamaño del área que la cámara captura
-        // mainCamera.orthographicSize = cameraHeight;
     }
 }

@@ -15,42 +15,65 @@ class Server(BaseHTTPRequestHandler):
         self.wfile.write("GET request for {}".format(self.path).encode('utf-8'))
 
     def do_POST(self):
-        # Leer el archivo 'input.txt'
-        with open('../Python/inputs/input1.txt', 'r') as f:
-            # Leer la primera línea para obtener las dimensiones del mapa
-            Console.WriteLine("Abri esta wea")
-            first_line = f.readline().strip()
-            rows, cols = map(int, first_line.split())
-            # Calcular el total de celdas basado en las dimensiones
-            total_cells = rows * cols
-            # Continúa leyendo el resto del archivo para contar los demás elementos
-            map_data = f.read()
 
-        # Calcular la cantidad de cada tipo de elemento
-        total_trash = 0
-        total_obstacles = 0
-        total_robots = 5
-        total_trashcans = 1
+        listado = []
+        steps = []
+        board = []
+        rows = 0
+        cols = 0
+
+        with open('./model.txt', 'r') as file:
+            
+            lines = file.readlines()
+            # Buscamos la primera línea que comienza con '[[' para identificar el comienzo de la primera "lista de listas"
+            start_index = next(i for i, line in enumerate(lines) if line.strip().startswith("[["))
+            # Ahora, buscamos la primera línea que termina con ']]' para identificar el final de la primera "lista de listas"
+            end_index = next(i for i, line in enumerate(lines[start_index:]) if line.strip().endswith("]]")) + start_index
+            # Calculamos las dimensiones
+            rows = end_index - start_index + 1
+            cols = len(lines[start_index].strip().split())  # Usamos split para contar los elementos en la primera línea
+
+            steps = []
+
+            with open('./model.txt', 'r') as file:
+                step = []
+                for line in file:
+                    line = line.strip()
+                    if line.startswith("[["):
+                        step = []
+                    elif line.endswith("]]"):
+                        step.append(line.replace("[", "").replace("]", "").strip())
+                        steps.append(step)
+                        step = []
+                    else:
+                        step.append(line.replace("[", "").replace("]", "").strip())
+        """with open('./model.txt', 'r') as file:
+            ## Itera línea por línea en el archivo
+            for linea in file:
+                # Quita los corchetes y elimina espacios en blanco de los extremos
+                linea_limpia = linea.replace('[', '').replace(']', '').strip()
+                # Si la línea no está vacía después de limpiarla, añade a la lista
+                if linea_limpia:
+                    listado.append(linea_limpia)
         
-        # Contar las celdas desde la segunda línea
-        lines = map_data.split("\n")[1:]
+        
+        for i in range(len(listado)):
+            if i % (rows+1) == (rows):
+                print(board)
+                steps.append(board)
+                board = []
+            else:
+                board.append(listado[i])"""
 
-        for line in lines:
-            total_cells += len(line.split())
-            for cell in line.split():
-                if cell.isdigit():
-                    total_trash += int(cell)
-                elif cell == "X":
-                    total_obstacles += 1
+        map_data = steps[-1]
+        # Calcular la cantidad de cada tipo de elemento
+
+        total_robots = 5
 
         # Preparar el JSON para enviar
         response ={
             "map_data": map_data,
-            "total_cells": total_cells,
-            "total_trash": total_trash,
-            "total_obstacles": total_obstacles,
             "total_robots": total_robots,
-            "total_trashcans": total_trashcans,
             "rows": rows,
             "cols": cols
         }

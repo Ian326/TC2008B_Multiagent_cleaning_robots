@@ -403,7 +403,6 @@ class Robot(Agent):
                 self.model.robots_pos_map[agent.pos[0]][agent.pos[1]] = 'X'
             elif agent.type == 4:
                 self.model.robots_pos_map[agent.pos[0]][agent.pos[1]] = 'P'
-        # SE PUEDE BORRAR
         if self.model.robots_pos_map[self.pos[0]][self.pos[1]] == '':
             self.model.robots_pos_map[self.pos[0]][self.pos[1]] = '0'
     

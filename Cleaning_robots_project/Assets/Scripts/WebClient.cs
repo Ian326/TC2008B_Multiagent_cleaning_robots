@@ -36,14 +36,11 @@ public class WebClient : MonoBehaviour
                 // Parse the JSON response
                 var jsonResponse = JsonUtility.FromJson<MapResponse>(www.downloadHandler.text);
                 string mapData = jsonResponse.map_data;
-                int total_cells = jsonResponse.total_cells;
-                int total_trash = jsonResponse.total_trash;
-                int total_obstacles = jsonResponse.total_obstacles;
                 int total_robots = jsonResponse.total_robots;
-                int total_trashcans = jsonResponse.total_trashcans;
+
 
                 // Asegurándose de pasar todos los parámetros necesarios
-                mapGenerator.GenerateMapFromData(mapData, jsonResponse.rows, jsonResponse.cols, total_cells, total_trash, total_obstacles, total_robots, total_trashcans);
+                mapGenerator.GenerateMapFromData(mapData, jsonResponse.rows, jsonResponse.cols, total_robots);
             }
         }
     }
@@ -60,11 +57,7 @@ public class WebClient : MonoBehaviour
 [System.Serializable]
 public class MapResponse{
     public string map_data;
-    public int total_cells;
-    public int total_trash;
-    public int total_obstacles;
     public int total_robots;
-    public int total_trashcans;
     public int rows;  
     public int cols;  
 }
