@@ -256,7 +256,7 @@ class Robot(Agent):
                 self.alreadyCleaned = True
                 self.moveToPaperBin()
             else:
-                #print(f"[Robot en {self.pos} - LT: {self.load}] Enhorabuena, no hay más basura!")
+                print(f"[Robot en {self.pos}] Ya no hay basura, esperando a los demás...")
                 if self.state == "cleaning":
                     self.state = "done"
                     self.model.robots_finished += 1    
@@ -458,7 +458,7 @@ class GameBoard(Model):
         self.current_step = 0
         self.current_state = ""
         self.total_steps = 0
-        
+        self.step_exploration_done = 0
         self.robots_finished = 0
         
         self.paperBin_pos = (0,0)
@@ -487,23 +487,26 @@ class GameBoard(Model):
 
     def step(self):
         
-        if self.robots_finished >= 5:
-            self.simulation_continue = False
-
         print("================================")
         print(self.current_step)
         if self.exploredCellsCount == self.cellsCount:
             #print("Se exploraron todas las celdas\n")
             #print(self.robots_pos_map)
-            print(f"Hay {len(self.litterCoords)} celdas con basura: {self.litterCoords}")
+            print(f"Hay {len(self.litterCoords)} celdas con basura")
         
         self.schedule.step()
         
         if self.current_step == self.cellsCount:
+            if self.step_exploration_done == 0:
+                self.step_exploration_done = self.current_step
             self.updateUnexplored()
         self.current_step += 1
         
         self.datacollector.collect(self)
+        
+        if self.robots_finished >= 5:
+            print(f"El programa ha terminado. xSteps: {self.step_exploration_done} tSteps: {self.current_step}")
+            self.simulation_continue = False
     
     #Inicializa los agentes de acuerdo a la lectura del input.txt
     def initialize_agents(self, gameboard, x, y, robots_count):
@@ -645,7 +648,7 @@ def get_grid(model):
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
 step_count = 0
-gameboard = [line.split() for line in open('./inputs/input5.txt').read().splitlines() if line][1:]
+gameboard = [line.split() for line in open('./inputs/input2.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 
