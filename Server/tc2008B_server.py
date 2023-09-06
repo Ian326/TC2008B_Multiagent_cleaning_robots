@@ -22,7 +22,7 @@ class Server(BaseHTTPRequestHandler):
         rows = 0
         cols = 0
 
-        with open('./model.txt', 'r') as file:
+        with open('../Python/outputs/model.txt', 'r') as file:
             
             lines = file.readlines()
             # Buscamos la primera línea que comienza con '[[' para identificar el comienzo de la primera "lista de listas"
@@ -35,20 +35,7 @@ class Server(BaseHTTPRequestHandler):
 
             steps = []
 
-            with open('./model.txt', 'r') as file:
-                step = []
-                for line in file:
-                    line = line.strip()
-                    if line.startswith("[["):
-                        step = []
-                    elif line.endswith("]]"):
-                        step.append(line.replace("[", "").replace("]", "").strip())
-                        steps.append(step)
-                        step = []
-                    else:
-                        step.append(line.replace("[", "").replace("]", "").strip())
-        """with open('./model.txt', 'r') as file:
-            ## Itera línea por línea en el archivo
+        with open('../Python/outputs/model.txt', 'r') as file:
             for linea in file:
                 # Quita los corchetes y elimina espacios en blanco de los extremos
                 linea_limpia = linea.replace('[', '').replace(']', '').strip()
@@ -56,16 +43,15 @@ class Server(BaseHTTPRequestHandler):
                 if linea_limpia:
                     listado.append(linea_limpia)
         
-        
         for i in range(len(listado)):
             if i % (rows+1) == (rows):
                 print(board)
                 steps.append(board)
                 board = []
             else:
-                board.append(listado[i])"""
-
-        map_data = steps[-1]
+                board.append(listado[i])
+                
+        map_data = steps[2]
         # Calcular la cantidad de cada tipo de elemento
 
         total_robots = 5

@@ -61,7 +61,7 @@ class Robot(Agent):
     
     def step(self):
         #Las primeras n (Igual al tamaño del tablero) iteraciones, explorará sin orden
-        if self.model.current_step <= self.model.cellsCount:
+        if self.model.current_step <= self.model.cellsCount/2:
             if self.model.current_step >= 1:
                 self.explore_random()
                 
@@ -182,7 +182,7 @@ class Robot(Agent):
         
         self.queuedMovements = self.model.bfs(self.model.cellsGraph, self.pos, self.targetCell)
         
-        if(self.queuedMovements):
+        if(self.queuedMovements and len(self.queuedMovements) > 1):
             self.queuedMovements.pop(0)
 
             #print(f"El robot en la celda {self.pos} explorará la celda {self.targetCell}")
@@ -495,7 +495,7 @@ class GameBoard(Model):
         
         self.schedule.step()
         
-        if self.current_step == self.cellsCount:
+        if self.current_step == self.cellsCount/2:
             if self.step_exploration_done == 0:
                 self.step_exploration_done = self.current_step
             self.updateUnexplored()
@@ -657,7 +657,7 @@ def get_grid(model):
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
 step_count = 0
-gameboard = [line.split() for line in open('./inputs/input2.txt').read().splitlines() if line][1:]
+gameboard = [line.split() for line in open('./inputs/final-test.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 
