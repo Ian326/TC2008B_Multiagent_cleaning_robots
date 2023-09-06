@@ -12,7 +12,7 @@ public class MapGenerator : MonoBehaviour
     public GameObject robotPrefab; // prefab para "S"
     public GameObject trashcanPrefab; // prefab para "P"
     public List <GameObject> garbagePrefab; // prefab para la basura
-    public Camera mainCamera; //Cámara 2D
+    // public Camera mainCamera; //Cámara 2D
 
     public void GenerateMapFromData(string mapData, int rows, int cols, int total_cells, int total_trash, int total_obstacles, int total_robots, int total_trashcans)
     {
@@ -95,23 +95,23 @@ public class MapGenerator : MonoBehaviour
             }
         }
         
-        // Ajusta la posición de la cámara para que esté centrada en la cuadrícula.
-        Vector3 cameraPosition = new Vector3(startX + ((float)cols / 2 * tileDimension), mainCamera.transform.position.y, startZ - ((float)rows / 2 * tileDimension) +1);
+        // // Ajusta la posición de la cámara para que esté centrada en la cuadrícula.
+        // Vector3 cameraPosition = new Vector3(startX + ((float)cols / 2 * tileDimension), mainCamera.transform.position.y, startZ - ((float)rows / 2 * tileDimension) +1);
 
-        // Ajusta la cámara para modo ortográfico
-        mainCamera.orthographic = true;
+        // // Ajusta la cámara para modo ortográfico
+        // mainCamera.orthographic = true;
 
-        // Rotar la cámara 90 grados en X para que mire hacia abajo
-        mainCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+        // // Rotar la cámara 90 grados en X para que mire hacia abajo
+        // mainCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
 
-        // Ajustar la altura (posición Y) de la cámara para que abarque toda la cuadrícula.
-        float cameraHeight = Mathf.Max(rows, cols) * 0.5f * tileDimension;
-        cameraPosition.y = cameraHeight;
+        // // Ajustar la altura (posición Y) de la cámara para que abarque toda la cuadrícula.
+        // float cameraHeight = Mathf.Max(rows, cols) * 0.5f * tileDimension;
+        // cameraPosition.y = cameraHeight;
         
-        // Asignar la nueva posición y rotación a la cámara
-        mainCamera.transform.position = cameraPosition;
+        // // Asignar la nueva posición y rotación a la cámara
+        // mainCamera.transform.position = cameraPosition;
         
-        // Ajustar el tamaño del área que la cámara captura
-        mainCamera.orthographicSize = cameraHeight;
+        // // Ajustar el tamaño del área que la cámara captura
+        // mainCamera.orthographicSize = cameraHeight;
     }
 }

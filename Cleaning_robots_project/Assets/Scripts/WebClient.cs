@@ -51,11 +51,6 @@ public class WebClient : MonoBehaviour
     void Start()
     {
         StartCoroutine(SendData("dummy data"));
-
-        if (mapGenerator.mainCamera == null) 
-        {
-            mapGenerator.mainCamera = Camera.main;  
-        }
     }
 
     void Update()

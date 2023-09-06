@@ -18,6 +18,7 @@ public class CameraController : MonoBehaviour
     {
         //Inicializar la cámara
         cam = GetComponent<Camera>();
+        cam.orthographic = true;
     }
 
 
