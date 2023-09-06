@@ -11,7 +11,7 @@ public class MapGenerator : MonoBehaviour
     public GameObject floorPrefab; // prefab para "0"
     public GameObject robotPrefab; // prefab para "S"
     public GameObject trashcanPrefab; // prefab para "P"
-    public GameObject garbagePrefab; // prefab para basura (número diferente de 0)
+    public List <GameObject> garbagePrefab; // prefab para la basura
     public Camera mainCamera; //Cámara 2D
 
     public void GenerateMapFromData(string mapData, int rows, int cols, int total_cells, int total_trash, int total_obstacles, int total_robots, int total_trashcans)
@@ -32,6 +32,7 @@ public class MapGenerator : MonoBehaviour
                 // Calcula las nuevas coordenadas para instanciar
                 int newX = startX + (x * tileDimension);
                 int newZ = startZ - (y * tileDimension);
+                float newY = 0.09600022f;
                 // Instanciamos un piso en cada posición.
                 Instantiate(floorPrefab, new Vector3(newX, 0, newZ), Quaternion.identity);
 
@@ -59,35 +60,37 @@ public class MapGenerator : MonoBehaviour
                 }
                 else if (int.TryParse(cellType, out int value) && value > 0)
                 {
-                    // La altura en Y donde todas las latas de basura estarán situadas
-                    float yPosition = 0.09600022f;
-                    
-                    // Lista para mantener un registro de las coordenadas ocupadas dentro de esta celda
-                    List<Vector3> occupiedPositions = new List<Vector3>();
+                    newY = 1.16f;
 
-                    // Si el tipo de celda es un número y ese número es mayor que 0, entonces es basura.
-                    for (int i = 0; i < value; i++)
-                    {
-                        Vector3 newPos;
-
-                        do
-                        {
-                            float randomX = Random.Range(-0.5f, 0.5f);
-                            float randomZ = Random.Range(-0.5f, 0.5f);
-                            newPos = new Vector3(newX + randomX, yPosition, newZ + randomZ);
-                        }
-                        while (occupiedPositions.Any(pos => Vector3.Distance(newPos, pos) < 0.188)); // Asegurarse de que no está demasiado cerca de otra lata, tonamdo en cuenta un diámetro de 0.188 por lata
-                        
-                        // Añadir la nueva posición a la lista de posiciones ocupadas
-                        occupiedPositions.Add(newPos);
-                        
-                        Instantiate(garbagePrefab, newPos, Quaternion.identity);
+                    if (value == 1){
+                        prefabToUse = garbagePrefab[0];
+                    }
+                    else if (value == 2){
+                        prefabToUse = garbagePrefab[1];
+                    }
+                    else if (value == 3){
+                        prefabToUse = garbagePrefab[2];
+                    }
+                    else if (value == 4){
+                        prefabToUse = garbagePrefab[3];
+                    }
+                    else if (value == 5){
+                        prefabToUse = garbagePrefab[4];
+                    }
+                    else if (value == 6){
+                        prefabToUse = garbagePrefab[5];
+                    }
+                    else if (value == 7){
+                        prefabToUse = garbagePrefab[6];
+                    }
+                    else if (value == 8){
+                        prefabToUse = garbagePrefab[7];
                     }
                 }
                 // Instanciamos el prefab en la posición (x, 1, y), sobre el piso.
                 if (prefabToUse != null)
                 {
-                    Instantiate(prefabToUse, new Vector3(newX, 0.09600022f, newZ), Quaternion.identity);
+                    Instantiate(prefabToUse, new Vector3(newX, newY, newZ), Quaternion.identity);
                 }
             }
         }

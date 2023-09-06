@@ -16,7 +16,7 @@ class Server(BaseHTTPRequestHandler):
 
     def do_POST(self):
         # Leer el archivo 'input.txt'
-        with open('C:\\Users\\marif\\OneDrive\\Escritorio\\TC2008B_Multiagent_cleaning_robots\\Python\\inputs\\input4.txt', 'r') as f:
+        with open('C:\\Users\\marif\\OneDrive\\Escritorio\\TC2008B_Multiagent_cleaning_robots\\Python\\inputs\\input1.txt', 'r') as f:
             # Leer la primera línea para obtener las dimensiones del mapa
             first_line = f.readline().strip()
             rows, cols = map(int, first_line.split())
@@ -53,13 +53,6 @@ class Server(BaseHTTPRequestHandler):
             "rows": rows,
             "cols": cols
         }
-        print(total_cells)
-        print(total_trash)
-        print(total_obstacles)
-        print(total_robots)
-        print(total_trashcans)
-        print(rows)
-        print(cols)
 
         self._set_response()
         self.wfile.write(json.dumps(response).encode('utf-8'))
