@@ -5,6 +5,7 @@ from mesa.datacollection import DataCollector
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import seaborn as sns
 from matplotlib.colors import ListedColormap
 plt.rcParams["animation.html"] = "jshtml"
 matplotlib.rcParams['animation.embed_limit'] = 2**128
@@ -268,8 +269,8 @@ class GameBoard(Model):
         for x in range(len(gameboard)):
             for y in range(len(gameboard[x])):
                 self.initialize_agents(gameboard, x, y, robots_count)
-        self.datacollector = DataCollector(
-            model_reporters={"GridColors": lambda m: get_grid(m)[1]})
+        self.datacollector = DataCollector(model_reporters={"Grid": get_grid})
+
     def step(self):
         if self.robots_finished == 5:
             self.simulation_continue = False
@@ -388,40 +389,24 @@ class GameBoard(Model):
 
 # Representacion de los agentes en la animacion con colores
 def get_grid(model):
-    grid_repr = np.zeros((model.grid.width, model.grid.height), dtype=object)
-    grid_colors = np.zeros((model.grid.width, model.grid.height))
-    
-    for (content, (x, y)) in model.grid.coord_iter():
-        has_paper_bin = False  # Variable para rastrear si la celda contiene una papelera
+    grid_state = np.zeros((model.grid.width, model.grid.height), dtype=int)
+
+    for cell in model.grid.coord_iter():
+        x, y = cell
+        cell_contents = model.grid.get_cell_list_contents((x, y))
         
-        for agent in content:
-            # Creacion del contenido de las celdas de acuerdo con su tipo
-            if isinstance(agent, PaperBin):
-                grid_repr[x][y] = "P"
-                grid_colors[x][y] = 4
-                has_paper_bin = True
-            
-            elif isinstance(agent, Litter):
-                grid_repr[x][y] = str(int(grid_repr[x][y]) + 1) if grid_repr[x][y] else "1"
-                grid_colors[x][y] = 2
-            
-            elif isinstance(agent, Wall):
-                grid_repr[x][y] = "X"
-                grid_colors[x][y] = 3
-            
-            elif isinstance(agent, Robot):
-                if not has_paper_bin:  # Solo se coloca un robot si no hay una papelera en la celda
-                    grid_repr[x][y] = "S"
-                    grid_colors[x][y] = 1
-            
-            else:
-                grid_repr[x][y] = "0"
-                grid_colors[x][y] = 0
+        # Assuming you have a Robot class with type 1 and a Wall class with type 3
+        # You can modify this part to include other agent types
+        for agent in cell_contents:
+            if agent.type == 1:
+                grid_state[x][y] = 1  # For Robots
+            elif agent.type == 3:
+                grid_state[x][y] = 3  # For Walls
+
+    return grid_state
     
-    return grid_colors
-    
-width = 0
-height = 0
+width = 5
+height = 5
 office = []
 
 flag = True
@@ -445,21 +430,18 @@ print("Algoritmo terminado en ", model.total_steps, " steps")
 
  # Arreglo de matrices
 
-all_grid = model.datacollector.get_model_vars_dataframe()["GridColors"] 
-first_grid = all_grid.iloc[0]["GridColors"]  # Este es un supuesto basado en tu código
-if first_grid.size == 0:
-    print("El grid está vacío. Terminando...")
-    sys.exit(1)
+# Este es un supuesto basado en tu código
 
+
+
+def animate(i):
+    patch.set_data(all_grid.iloc[i][0])
+all_grid = model.datacollector.get_model_vars_dataframe()
 fig, axis = plt.subplots(figsize=(width, height))
 axis.set_xticks([])
 axis.set_yticks([])
-my_cmap = ListedColormap(['snow', 'slategray', 'thistle', 'black', 'skyblue'])
-patch = plt.imshow(first_grid, cmap=my_cmap)
-
-def animate(i):
-    patch.set_data(all_grid.iloc[i]["GridColors"]) 
-ani = animation.FuncAnimation(fig, animate, frames = step_count, blit=False)
+patch = plt.imshow(all_grid.iloc[0][0], cmap=sns.color_palette("Paired", as_cmap=True))
+anim = animation.FuncAnimation(fig, animate, frames = step_count, blit=False)
 
 plt.show()
 
