@@ -6,8 +6,7 @@ public class CameraController : MonoBehaviour
 {
     public float moveSpeed = 10f;
     public float turnSpeed = 60f;
-    public float zoomSpeed = 1f;  
-
+    public float zoomSpeed = 1f;
     // Cantidad máxima en Y para hacer zoom in
     public float minOrthographicSize = 2f;
     //Cantidad máxima en Y para hacer zoom out
@@ -18,8 +17,8 @@ public class CameraController : MonoBehaviour
     {
         //Inicializar la cámara
         cam = GetComponent<Camera>();
+        cam.orthographic = true;
     }
-
 
     // Update is called once per frame
     void Update()

@@ -26,6 +26,10 @@ matplotlib.rcParams['animation.embed_limit'] = 2**128
 import numpy as np
 import random as rd
 
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import logging
+import json
+
 # --- Definición de Agentes ---
 class Litter(Agent):
     def __init__(self, id, model):
@@ -501,11 +505,8 @@ class GameBoard(Model):
             self.updateUnexplored()
         self.current_step += 1
         
-        self.datacollector.collect(self)
-        
         if self.robots_finished >= 5:
             print(f"El programa ha terminado. xSteps: {self.step_exploration_done} tSteps: {self.current_step}")
-            self.saveData_toFile()
             self.simulation_continue = False
     
     #Inicializa los agentes de acuerdo a la lectura del input.txt
@@ -608,16 +609,6 @@ class GameBoard(Model):
                     cola.append((vecino, nuevo_camino))
         #Si no encuentra un camino, devuelve None
         return None
-    
-    def saveData_toFile(self):
-        df = self.datacollector.get_model_vars_dataframe()
-        model = df["GridRepr"]
-        model.to_csv('./outputs/model.txt', sep='\n', index=False, header=False)
-        with open('./outputs/model.txt', 'r') as archivo:
-            contenido = archivo.read()
-        contenido = contenido.replace("'", "").replace('"', '')
-        with open('./outputs/model.txt', 'w') as archivo:
-            archivo.write(contenido)
 
 # Representacion de los agentes en la animacion con colores
 def get_grid(model):
@@ -657,59 +648,99 @@ def get_grid(model):
 # --- Ejecucion y visualizacion del grid. Parámetros iniciales del modelo ---
 ROBOTS = 5
 step_count = 0
-gameboard = [line.split() for line in open('./inputs/final-test.txt').read().splitlines() if line][1:]
+gameboard = [line.split() for line in open('./inputs/input1.txt').read().splitlines() if line][1:]
 GRID_SIZE_X = len(gameboard)
 GRID_SIZE_Y = len(gameboard[0])
 
 model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
 
-while model.simulation_continue:
-    model.step()
-    step_count += 1
+##NOTA: SI QUIERES UNA VISUALIZACIÓN SIN UNITY, DESCOMENTA ESTE CODIGO Y COMENTA EL RESTANTE##
 
-#Optiene todos los colores y registros de celdas por el tipo de agente
-all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
-all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
-
-#---- Colores puestos para los agentes -----
-my_cmap = ListedColormap(['snow', 'slategray', 'thistle', 'black', 'skyblue'])
-
-fig, axis = plt.subplots(figsize=(7, 7))
-
-
-def animate(i):
+# while model.simulation_continue:
+#     model.step()
     
-    axis.clear()
-    grid_data_repr = all_grid_repr.iloc[i]
-    grid_data_colors = all_grid_colors.iloc[i]
-    axis.imshow(grid_data_colors, cmap=my_cmap)
-    for x in range(GRID_SIZE_X):
-        for y in range(GRID_SIZE_Y):
-            num = grid_data_repr[x][y]
-            color = 'black'  # Color por defecto
-            
-            # Buscar si hay un robot o papelera en la celda
-            robot = next((agent for agent in model.grid.get_cell_list_contents([(x, y)]) if isinstance(agent, Robot)), None)
-            paper_bin = next((agent for agent in model.grid.get_cell_list_contents([(x, y)]) if isinstance(agent, PaperBin)), None)
-            
-            # Si hay una papelera y un robot en la celda, mostrar el robot encima
-            if paper_bin and robot:
-                num = 'S'
-                color = 'white'  # El color del texto del robot sera blanco para que sea visible sobre la papelera
-                
-            # Cambiar el color del texto en funcion del tipo de agente en la celda
-            elif str(num).isdigit():
-                color = 'black'
-            else:
-                color = 'white'
-            
-            if num != "0":
-                axis.annotate(num, xy=(y, x), ha='center', va='center', color=color)
+#     step_count += 1
 
-    axis.set_xlim(-0.5, GRID_SIZE_Y - 0.5)
-    axis.set_ylim(-0.5, GRID_SIZE_X - 0.5)
-    axis.invert_yaxis()
-    axis.annotate(f'Step: {i+1}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', va='center', fontsize=12, color='black')
-# animacion de la simulacion
-anim = animation.FuncAnimation(fig, animate, frames=step_count, repeat=False)
-anim.save(filename="cleaningRobots.mp4")
+# #Optiene todos los colores y registros de celdas por el tipo de agente
+# all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
+# all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
+
+# #---- Colores puestos para los agentes -----
+# my_cmap = ListedColormap(['snow', 'slategray', 'thistle', 'black', 'skyblue'])
+
+# fig, axis = plt.subplots(figsize=(7, 7))
+
+
+# def animate(i):
+    
+#     axis.clear()
+#     grid_data_repr = all_grid_repr.iloc[i]
+#     grid_data_colors = all_grid_colors.iloc[i]
+#     axis.imshow(grid_data_colors, cmap=my_cmap)
+#     for x in range(GRID_SIZE_X):
+#         for y in range(GRID_SIZE_Y):
+#             num = grid_data_repr[x][y]
+#             color = 'black'  # Color por defecto
+            
+#             # Buscar si hay un robot o papelera en la celda
+#             robot = next((agent for agent in model.grid.get_cell_list_contents([(x, y)]) if isinstance(agent, Robot)), None)
+#             paper_bin = next((agent for agent in model.grid.get_cell_list_contents([(x, y)]) if isinstance(agent, PaperBin)), None)
+            
+#             # Si hay una papelera y un robot en la celda, mostrar el robot encima
+#             if paper_bin and robot:
+#                 num = 'S'
+#                 color = 'white'  # El color del texto del robot sera blanco para que sea visible sobre la papelera
+                
+#             # Cambiar el color del texto en funcion del tipo de agente en la celda
+#             elif str(num).isdigit():
+#                 color = 'black'
+#             else:
+#                 color = 'white'
+            
+#             if num != "0":
+#                 axis.annotate(num, xy=(y, x), ha='center', va='center', color=color)
+
+#     axis.set_xlim(-0.5, GRID_SIZE_Y - 0.5)
+#     axis.set_ylim(-0.5, GRID_SIZE_X - 0.5)
+#     axis.invert_yaxis()
+#     axis.annotate(f'Step: {i+1}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', va='center', fontsize=12, color='black')
+# # animacion de la simulacion
+# anim = animation.FuncAnimation(fig, animate, frames=step_count, repeat=False)
+# anim.save(filename="cleaningRobots.mp4")
+
+class Server(BaseHTTPRequestHandler):
+
+    def _set_response(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+    def do_GET(self):
+        self._set_response()
+        self.wfile.write("GET request for {}".format(self.path).encode('utf-8'))
+
+    def do_POST(self):
+        
+        if model.simulation_continue == True:
+            model.step()
+            grid = get_grid(model)[0]
+        else:
+            grid
+            return
+
+        self._set_response()
+        self.wfile.write(str(grid).encode('utf-8'))
+
+def run(server_class=HTTPServer, handler_class=Server, port=8585):
+    logging.basicConfig(level=logging.INFO)
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    logging.info("Starting httpd...\n")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    httpd.server_close()
+    logging.info("Stopping httpd...\n")
+    
+run()
