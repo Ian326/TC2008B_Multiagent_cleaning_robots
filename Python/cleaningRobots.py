@@ -53,7 +53,7 @@ class Robot(Agent):
         super().__init__(id, model)
         
         self.type = 1
-        self.state = "explore_rand"
+        self.state = "explore_missing"
         self.capacity = 5
         self.load = 0
         
@@ -64,16 +64,10 @@ class Robot(Agent):
         self.alreadyCleaned = False
     
     def step(self):
-        #Las primeras n (Igual al tamaño del tablero) iteraciones, explorará sin orden
-        if self.model.current_step <= self.model.cellsCount/2:
+
+        if self.model.exploredCellsCount != self.model.cellsCount :
             if self.model.current_step >= 1:
-                self.explore_random()
-                
-        #Las siguientes iteraciones, explorará las celdas faltantes
-        elif self.model.exploredCellsCount != self.model.cellsCount:
-                self.state = "explore_missing"
                 self.explore_missing()
-                
                 print(f"Se han explorado {self.model.exploredCellsCount}/{self.model.cellsCount} celdas")
         
         #Recolectar basura
@@ -157,6 +151,7 @@ class Robot(Agent):
     
     #Elige una de las celdas que faltan de explorar, si puede moverse, generará la mejor ruta para ir a ella
     def explore_missing(self):
+        self.model.updateUnexplored()
         self.update_internal_map()      
         self.update_pos_map()
         self.model.updateMapToGraph(self.model.robots_internal_map)
@@ -204,9 +199,17 @@ class Robot(Agent):
                     
         else: 
             #print(f"No se encontró un camino de {self.pos} a {self.targetCell}")
+            
             if self.model.robots_internal_map[self.targetCell[0]][self.targetCell[1]] == 'X':
                 self.targetCell = ()
+                
+            if self.pos == self.targetCell:
+                self.targetCell = ()
             self.queuedMovements = []
+        
+        self.model.updateUnexplored()
+        self.update_internal_map()      
+        self.update_pos_map()
             
     #Elige una celda con basura como objetivo
     def assignLitter(self):
@@ -492,18 +495,17 @@ class GameBoard(Model):
         
         print("================================")
         print(self.current_step)
+        
         if self.exploredCellsCount == self.cellsCount:
-            #print("Se exploraron todas las celdas\n")
-            #print(self.robots_pos_map)
             print(f"Hay {len(self.litterCoords)} celdas con basura")
+            
+            if self.step_exploration_done == 0:
+                self.step_exploration_done = self.current_step
         
         self.schedule.step()
         
-        if self.current_step == self.cellsCount/2:
-            if self.step_exploration_done == 0:
-                self.step_exploration_done = self.current_step
-            self.updateUnexplored()
         self.current_step += 1
+        self.datacollector.collect(self)
         
         if self.robots_finished >= 5:
             print(f"El programa ha terminado. xSteps: {self.step_exploration_done} tSteps: {self.current_step}")
@@ -656,91 +658,92 @@ model = GameBoard(GRID_SIZE_X, GRID_SIZE_Y, gameboard, ROBOTS)
 
 ##NOTA: SI QUIERES UNA VISUALIZACIÓN SIN UNITY, DESCOMENTA ESTE CODIGO Y COMENTA EL RESTANTE##
 
-# while model.simulation_continue:
-#     model.step()
+while model.simulation_continue:
+    model.step()
+    step_count += 1
+
+#Optiene todos los colores y registros de celdas por el tipo de agente
+all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
+all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
+
+#---- Colores puestos para los agentes -----
+my_cmap = ListedColormap(['snow', 'slategray', 'thistle', 'black', 'skyblue'])
+
+fig, axis = plt.subplots(figsize=(7, 7))
+
+
+def animate(i):
     
-#     step_count += 1
-
-# #Optiene todos los colores y registros de celdas por el tipo de agente
-# all_grid_repr = model.datacollector.get_model_vars_dataframe()["GridRepr"]
-# all_grid_colors = model.datacollector.get_model_vars_dataframe()["GridColors"]
-
-# #---- Colores puestos para los agentes -----
-# my_cmap = ListedColormap(['snow', 'slategray', 'thistle', 'black', 'skyblue'])
-
-# fig, axis = plt.subplots(figsize=(7, 7))
-
-
-# def animate(i):
-    
-#     axis.clear()
-#     grid_data_repr = all_grid_repr.iloc[i]
-#     grid_data_colors = all_grid_colors.iloc[i]
-#     axis.imshow(grid_data_colors, cmap=my_cmap)
-#     for x in range(GRID_SIZE_X):
-#         for y in range(GRID_SIZE_Y):
-#             num = grid_data_repr[x][y]
-#             color = 'black'  # Color por defecto
+    axis.clear()
+    grid_data_repr = all_grid_repr.iloc[i]
+    grid_data_colors = all_grid_colors.iloc[i]
+    axis.imshow(grid_data_colors, cmap=my_cmap)
+    for x in range(GRID_SIZE_X):
+        for y in range(GRID_SIZE_Y):
+            num = grid_data_repr[x][y]
+            color = 'black'  # Color por defecto
             
-#             # Buscar si hay un robot o papelera en la celda
-#             robot = next((agent for agent in model.grid.get_cell_list_contents([(x, y)]) if isinstance(agent, Robot)), None)
-#             paper_bin = next((agent for agent in model.grid.get_cell_list_contents([(x, y)]) if isinstance(agent, PaperBin)), None)
+            # Buscar si hay un robot o papelera en la celda
+            robot = next((agent for agent in model.grid.get_cell_list_contents([(x, y)]) if isinstance(agent, Robot)), None)
+            paper_bin = next((agent for agent in model.grid.get_cell_list_contents([(x, y)]) if isinstance(agent, PaperBin)), None)
             
-#             # Si hay una papelera y un robot en la celda, mostrar el robot encima
-#             if paper_bin and robot:
-#                 num = 'S'
-#                 color = 'white'  # El color del texto del robot sera blanco para que sea visible sobre la papelera
+            # Si hay una papelera y un robot en la celda, mostrar el robot encima
+            if paper_bin and robot:
+                num = 'S'
+                color = 'white'  # El color del texto del robot sera blanco para que sea visible sobre la papelera
                 
-#             # Cambiar el color del texto en funcion del tipo de agente en la celda
-#             elif str(num).isdigit():
-#                 color = 'black'
-#             else:
-#                 color = 'white'
+            # Cambiar el color del texto en funcion del tipo de agente en la celda
+            elif str(num).isdigit():
+                color = 'black'
+            else:
+                color = 'white'
             
-#             if num != "0":
-#                 axis.annotate(num, xy=(y, x), ha='center', va='center', color=color)
+            if num != "0":
+                axis.annotate(num, xy=(y, x), ha='center', va='center', color=color)
 
-#     axis.set_xlim(-0.5, GRID_SIZE_Y - 0.5)
-#     axis.set_ylim(-0.5, GRID_SIZE_X - 0.5)
-#     axis.invert_yaxis()
-#     axis.annotate(f'Step: {i+1}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', va='center', fontsize=12, color='black')
-# # animacion de la simulacion
-# anim = animation.FuncAnimation(fig, animate, frames=step_count, repeat=False)
-# anim.save(filename="cleaningRobots.mp4")
+    axis.set_xlim(-0.5, GRID_SIZE_Y - 0.5)
+    axis.set_ylim(-0.5, GRID_SIZE_X - 0.5)
+    axis.invert_yaxis()
+    axis.annotate(f'Step: {i+1}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', va='center', fontsize=12, color='black')
+# animacion de la simulacion
+anim = animation.FuncAnimation(fig, animate, frames=step_count, repeat=False)
+anim.save(filename="cleaningRobots.mp4")
 
-class Server(BaseHTTPRequestHandler):
+##NOTA: SI QUIERES UNA VISUALIZACIÓN En UNITY, DESCOMENTA ESTE CODIGO Y COMENTA EL DE ARRIBA (DESDE EL WHILE)##
 
-    def _set_response(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
+# class Server(BaseHTTPRequestHandler):
 
-    def do_GET(self):
-        self._set_response()
-        self.wfile.write("GET request for {}".format(self.path).encode('utf-8'))
+#     def _set_response(self):
+#         self.send_response(200)
+#         self.send_header('Content-type', 'text/html')
+#         self.end_headers()
 
-    def do_POST(self):
+#     def do_GET(self):
+#         self._set_response()
+#         self.wfile.write("GET request for {}".format(self.path).encode('utf-8'))
+
+#     def do_POST(self):
         
-        if model.simulation_continue == True:
-            model.step()
-            grid = get_grid(model)[0]
-        else:
-            grid
-            return
+#         if model.simulation_continue == True:
+#             model.step()
+#             grid = get_grid(model)[0]
+#         else:
+#             grid
+#             return
 
-        self._set_response()
-        self.wfile.write(str(grid).encode('utf-8'))
+#         self._set_response()
+#         self.wfile.write(str(grid).encode('utf-8'))
 
-def run(server_class=HTTPServer, handler_class=Server, port=8585):
-    logging.basicConfig(level=logging.INFO)
-    server_address = ('', port)
-    httpd = server_class(server_address, handler_class)
-    logging.info("Starting httpd...\n")
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    httpd.server_close()
-    logging.info("Stopping httpd...\n")
+# def run(server_class=HTTPServer, handler_class=Server, port=8585):
+#     logging.basicConfig(level=logging.INFO)
+#     server_address = ('', port)
+#     httpd = server_class(server_address, handler_class)
+#     logging.info("Starting httpd...\n")
+#     try:
+#         httpd.serve_forever()
+#     except KeyboardInterrupt:
+#         pass
+#     httpd.server_close()
+#     logging.info("Stopping httpd...\n")
     
-run()
+# run()
