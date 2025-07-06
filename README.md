@@ -48,7 +48,7 @@ This architecture enables flexible visualization options - the Python simulation
 5. **Dynamic Rendering:** MapGenerator clears and rebuilds the 3D environment for each simulation step
 
 
-## Collaborators:
+## Collaborators 👥
 - Ian Joab Padrón Corona.
 - Uri Jared Gopar Morales.
 - María Fernanda Moreno Goméz.
